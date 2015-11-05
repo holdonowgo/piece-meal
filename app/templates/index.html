@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Hi, {{ client.name }}!</h1>
+    {% for allergen in allergens %}
+    <div><p>{{ allergen.client.name }} is allergic to: <b>{{ allergen.name }}</b></p></div>
+    {% endfor %}
+{% endblock %}
