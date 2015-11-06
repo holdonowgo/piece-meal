@@ -48,6 +48,21 @@ recipe_ingredients = db.Table('recipe_ingredients',
                               db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
                               )
 
+# recipe_steps = db.Table('recipe_steps',
+#                         db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id')),
+#                         db.Column('step_id', db.Integer, db.ForeignKey('step.id'))
+#                         )
+
+step_sub_recipe = db.Table('step_sub_recipe',
+                           db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
+                           db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id'))
+                           )
+
+step_ingredient = db.Table('step_ingredient',
+                           db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
+                           db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
+                           )
+
 
 # # from classClient import Client
 # # from classIngredient import Ingredient
@@ -186,6 +201,14 @@ class Recipe(db.Model):
                                   # backref=db.backref('recipes', lazy='dynamic'))
                                   lazy='dynamic')
 
+    # steps = db.relationship('Step',
+    #                         secondary=recipe_steps,
+    #                         backref='steps',
+    #                         # backref=db.backref('recipes', lazy='dynamic'))
+    #                         lazy='dynamic')
+
+    steps = db.relationship('Step', backref='recipe', lazy='dynamic')
+
     def has_ingredient(self, ingredient):
         print 'has_ingredient start'
         b = self.ingredients.filter(Ingredient.id == ingredient.id).count() > 0
@@ -248,6 +271,52 @@ class Ingredient(db.Model):
         # for w in self.warnings:
         #     s += '\nWarning: {0}'.format(w.text)
         return s
+
+class Step(db.Model):
+    """docstring for """
+    id = db.Column(db.Integer, primary_key=True)#step_no?
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
+
+    # ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
+    # sub_recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
+
+    # ForeignKeyConstraint(['invoice_id', 'ref_num'], ['invoice.invoice_id', 'invoice.ref_num']),
+    # recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
+    # employee_id = Column(Integer, ForeignKey('employee.id'), primary_key=True)
+    # extra_data = Column(String(256))
+    instructions = db.Column(db.String(256))
+
+    # recipe = db.relationship(Recipe, backref="recipe_assoc")
+    # sub_recipe = db.relationship(Recipe, backref="sub_recipe_assoc")
+    # ingredient = db.relationship(Ingredient, backref="ingredient_assoc")
+
+    ingredient = db.relationship('Ingredient',
+                                  secondary=step_ingredient,
+                                  backref='step',
+                                  # backref=db.backref('recipes', lazy='dynamic'))
+                                  lazy='dynamic')
+
+    sub_recipe = db.relationship('Recipe',
+                                 secondary=step_sub_recipe,
+                                 backref='step',
+                                 # backref=db.backref('recipes', lazy='dynamic'))
+                                 lazy='dynamic')
+
+    def set_ingredient(self, ingredient):
+        if not self.has_ingredient(ingredient):
+        # if not self.client_allergen_conflict(ingredient):
+            self.ingredient.append(ingredient)
+            print 'Ingredient Set!'
+        else:
+            print 'Ingredient Not Set!'
+
+        return self
+
+    def has_ingredient(self, ingredient):
+        print 'step_has_ingredient start'
+        b = self.ingredient.filter(Ingredient.id == ingredient.id).count() > 0
+        print 'has_ingredient end'
+        return b
 
 # class Ingredient_Warning(db.Model):
 #     id = db.Column(db.Integer, primary_key=True)
