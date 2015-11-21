@@ -31,3 +31,9 @@ OAUTH_CREDENTIALS={
             'secret': GOOGLE_LOGIN_CLIENT_SECRET
         }
 }
+
+
+# pagination
+POSTS_PER_PAGE = 3
+
+WHOOSH_BASE = os.path.join(basedir, 'search.db')

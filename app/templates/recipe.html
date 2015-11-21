@@ -1,0 +1,93 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="container">
+      <div class="jumbotron">
+        <div class="row">
+          <div class="col-lg-3">
+            <h1>{{recipe.name}}</h1>
+            {% if recipe.nutrition %}<p>{{ recipe.nutrition }}</p>{% endif %}
+            <!-- {% if recipe.last_seen %}<p><i>Last seen on: {{ user.last_seen }}</i></p>{% endif %} -->
+            <p class="important">{{ recipe.ingredients.count() }} ingredients |
+            <p>{{ recipe.steps.count() }} steps</p>
+          </div>
+          <div class="col-lg-9">
+          {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="btn-group btn-group-lg" role="group" aria-label="...">
+          <button type="button" class="btn btn-default">Small</button>
+          <button type="button" class="btn btn-default">Medium</button>
+          <button type="button" class="btn btn-default">Large</button>
+        </div>
+        <!-- BUTTONS -->
+        <!-- There are many built in button colors and sizes. If a link is to trigger in page functionality it should use role="button". The button element should be used in most situations -->
+        <p><br/>
+          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a>
+          <button type="submit" class = "btn btn-danger" role = "button">Button</button>
+          <input type="button" value="Info" class = "btn btn-info">
+          <button type="submit" class = "btn-primary btn-sm">Primary</button>
+          <button type="submit" class = "btn btn-success btn-xs">Success</button>
+          <button type="submit" class = "btn btn-warning btn-lg">Warning</button>
+          <button type="submit" class = "btn btn-link btn-lg">Link</button>
+        </p>
+      </div>
+
+<!-- For different sized columns divide up the 12 -->
+<div class="container">
+    {% for step in recipe.steps %}
+        <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12">
+
+        <!-- We can collapse or hide data on the screen -->
+        <h4><a href="#col{{ loop.index }}Content" data-toggle="collapse">{{ step.order_id }}</a></h4>
+
+        <!-- With collapse in this div shows on load -->
+        <div id="col{{ loop.index }}Content" class="collapse in"><p><h4>{{ step.instructions }}HERE!</h4></p></div>
+        </div>
+    {% endfor %}
+  <div class="row">
+    <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12">
+
+      <!-- We can collapse or hide data on the screen -->
+      <h4><a href="#col1Content" data-toggle="collapse">Column 1</a></h4>
+
+      <!-- With collapse in this div shows on load -->
+      <div id="col1Content" class="collapse in">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean fringilla at libero at finibus a pretium justo nulla sit amet nunc. Vestibulum finibus, lacus at gravida condimentum, tellus mauris imperdiet orci.</div>
+    </div>
+
+    <div class="col-lg-4 col-md-4 col-sm-8 col-xs-12">
+      <h4><a href="#col2Content" data-toggle="collapse">Column 2</a></h4>
+
+      <!-- With class collapse this div won't show on load -->
+      <div id="col2Content" class="collapse">Quisque rutrum augue odio, eu placerat diam bibendum id. Donec at fringilla leo, non varius magna. Vestibulum finibus, lacus at gravida condimentum, tellus mauris imperdiet orci, a pretium justo nulla sit amet nunc. Class aptent taciti sociosqu ad litora torquent per conubia.</div>
+    </div>
+
+    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+      <h4><a href="#col3Content" data-toggle="collapse">Column 3</a></h4>
+      <div id="col3Content" class="collapse"><h4>Pellentesque vulputate faucibus leo, non blandit ante faucibus maximus. Nunc non neque laoreet, tincidunt nisl et, tristique odio. Nullam imperdiet sollicitudin neque malesuada ornare. Curabitur ultrices urna id gravida lacinia. Nunc eu neque vitae nisi luctus rhoncus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac.</h4></div>
+    </div>
+      <br>
+    <dl>
+    <dt>Coffee</dt>
+    <dd>- black hot drink</dd>
+    <dt>Milk</dt>
+    <dd>- white cold drink</dd>
+  </dl>
+</div><br>
+
+      <div class="row>">
+        <div class="col-ld-3 col-md-3 col-sm-6 col-xs-12">
+          {% for ingredient in recipe.ingredients %}
+              {% include 'ingredient.html' %}
+          {% endfor %}
+        </div>
+        <div class="col-ld-9 col-md-9 col-sm-6 col-xs-12">
+          {% for step in recipe.steps %}
+              {% include 'step.html' %}
+          {% endfor %}
+        /</div>
+      </div>
+    </div>
+{% endblock %}

@@ -1,5 +1,13 @@
 from app import db
+from app import app
 from datetime import datetime
+import sys
+
+if sys.version_info >= (3, 0):
+    enable_search = False
+else:
+    enable_search = True
+    import flask.ext.whooshalchemy as whooshalchemy
 
 
 # User (Resource Owner)
@@ -30,7 +38,7 @@ class User(db.Model):
             return str(self.id)  # python 3
 
     def __repr__(self):
-        return '<User %r>' % (self.nickname)
+        return '<User %r>' % self.nickname
 
 
 client_recipes = db.Table('client_recipes',
@@ -49,6 +57,7 @@ recipe_ingredients = db.Table('recipe_ingredients',
                               db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id')),
                               db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
                               )
+
 
 # recipe_steps = db.Table('recipe_steps',
 #                         db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id')),
@@ -74,6 +83,7 @@ class StepSubRecipe(db.Model):
     def __repr__(self):
         return '{0} of {1}'.format(self.measurement, self.recipe.name)
 
+
 # # this made need to become an Association Table
 # # we need to know how much of the ingredient is needed for this partiucular step
 # # maybe even more notes
@@ -93,6 +103,7 @@ class StepIngredient(db.Model):
 
     def __repr__(self):
         return '{0} of {1}'.format(self.measurement, self.ingredient.name)
+
 
 # # from classClient import Client
 # # from classIngredient import Ingredient
@@ -154,7 +165,6 @@ class Client(db.Model):
             # if fa.count() == 0
             if not self.is_allergic(recipe):
                 self.recipes.append(recipe)
-                print recipe.name + ' added!'
 
         return self
 
@@ -162,14 +172,17 @@ class Client(db.Model):
         b = False
         alrgns = db.session.query(client_allergens).filter(client_allergens.c.client_id == self.id)
         # print 'db.session.query(client_allergens).filter(client_allergens.c.client_id == self.id)'
-        # ingrdnts = Recipe.query.filter(Recipe.id == recipe.id).first().ingredients.all()
+        ingrdnts = Ingredient.query \
+            .join(StepIngredient) \
+            .join(Step) \
+            .filter(Ingredient.id == StepIngredient.ingredient_id,
+                    StepIngredient.step_id == Step.id,
+                    Step.recipe_id == recipe.id).all()
         # print 'Recipe.query.filter(Recipe.id == recipe.id).first().ingredients'
         for a in alrgns:
             for i in ingrdnts:
                 if a.ingredient_id == i.id:
-                    print 'Recipe contains allergen {0}'.format(i.name)
                     b = True
-        print 'Recipe does not contain allergen'
         return b
 
     # return Post.query.join(followers, (followers.c.followed_id == Post.user_id))\
@@ -181,19 +194,11 @@ class Client(db.Model):
             return self
 
     def has_recipe(self, recipe):
-        cnt = self.recipes.filter(Recipe.id == recipe.id).count()
-        if cnt > 0:
-            print 'client already has recipe'
-            return True
-        else:
-            print 'client does not have recipe'
-            return False
+        return self.recipes.filter(Recipe.id == recipe.id).count() > 0
 
     def add_allergen(self, ingredient):
         if not self.has_allergen(ingredient):
-            print 'add_allergen start'
             self.allergens.append(ingredient)
-            print 'add_allergen end'
             return self
 
     def remove_allergen(self, ingredient):
@@ -202,9 +207,7 @@ class Client(db.Model):
             return self
 
     def has_allergen(self, ingredient):
-        print 'has_allergen start'
         b = self.allergens.filter(Ingredient.id == ingredient.id).count() > 0
-        print 'has_allergen end'
         return b
 
     def __repr__(self):
@@ -217,11 +220,67 @@ class Client(db.Model):
         return s
 
 
+class MenuRecipe(db.Model):
+    __tablename__ = 'menu_recipe'
+    menu_id = db.Column(db.Integer, db.ForeignKey('menu.id'), primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), primary_key=True)
+
+
+class Menu(db.Model):
+    __tablename__ = 'menu'
+    # __searchable__ = ['description']
+
+    id = db.Column(db.Integer, primary_key=True)
+    start_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+
+    recipes = db.relationship('Recipe',
+                              secondary="menu_recipe",
+                              backref='menus',
+                              # backref=db.backref('recipes', lazy='dynamic'))
+                              lazy='dynamic')
+
+    # @property
+    # def recipes(self):
+    #     return Recipe.query.\
+    #     join(MenuRecipe)
+    #     filter(MenuRecipe.menu_id == self.id)
+
+    @property
+    def ingredients(self):
+        return Ingredient.query. \
+            join(MenuRecipe). \
+            join(Recipe). \
+            join(Recipe.ingredients). \
+            filter(MenuRecipe.menu_id == self.id, MenuRecipe.recipe_id == Recipe.recipe_id)
+
+    def add_recipe(self, recipe):
+        if not self.has_recipe(recipe):
+            # if not self.client_allergen_conflict(ingredient):
+            self.recipes.append(recipe)
+
+        return self
+
+    def has_recipe(self, recipe):
+        return self.recipes.filter(Recipe.id == recipe.id).count() > 0
+
+    def __repr__(self):
+        result = "{0:%d/%m/%y} - {1:%d/%m/%y}}".format(self.start_date, self.end_date)
+
+        for r in self.recipes:
+            result += "\n\n{0}".format(r)
+
+        return result
+
+
 ### classRecipe.py
 class Recipe(db.Model):
     __tablename__ = 'recipe'
+    __searchable__ = ['description']
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True, unique=True)
+    description = db.Column(db.String(128))
     cooking_style = db.Column(db.Enum('fried', 'baked', 'roasted', 'mixed', name='cooking_style'))
     recipe_type = db.Column(db.Enum('breakfast', 'lunch', 'dinner', 'snack', 'sauce', 'bread'))
 
@@ -240,10 +299,10 @@ class Recipe(db.Model):
     #      filter(SalesManager.id == 1).all()
 
     def ingredientsV2(self):
-        return Ingredient.query.\
-                join(Step).\
-                join(Step.ingredients).\
-                filter(Step.recipe_id == self.id)
+        return Ingredient.query. \
+            join(Step). \
+            join(Step.ingredients). \
+            filter(Step.recipe_id == self.id)
 
     #   TODO need to define 'ingredients' for Recipe
 
@@ -256,14 +315,10 @@ class Recipe(db.Model):
     steps = db.relationship('Step', backref='recipe', lazy='dynamic')
 
     def has_ingredient(self, ingredient):
-        print 'has_ingredient start'
         b = self.ingredients.filter(Ingredient.id == ingredient.id).count() > 0
-        print 'has_ingredient end'
         return b
 
     def client_allergen_conflict(self, ingredient):
-        # alrgns = db.session.query.join(client_allergens).filter(client_allergens.c.client_id == self.id)
-        # query = session.query(User, Document, DocumentsPermissions).join(Document).join(DocumentsPermissions)
         query = db.session.query(Client). \
             join(client_recipes). \
             join(client_allergens). \
@@ -271,7 +326,6 @@ class Recipe(db.Model):
             filter(client_allergens.c.ingredient_id == ingredient.id). \
             filter(Client.id == client_recipes.c.recipe_id).count()
         if query > 0:
-            print 'Client Allergen Conflict!'
             return True
         else:
             return False
@@ -280,15 +334,12 @@ class Recipe(db.Model):
         if not self.has_ingredient(ingredient):
             if not self.client_allergen_conflict(ingredient):
                 self.ingredients.append(ingredient)
-                print 'Ingredient Added!'
-            else:
-                print 'Ingredient Not Added!'
 
         return self
 
     def add_step(self, step):
         # if not self.has_step(step):
-            # if not self.client_allergen_conflict(step):
+        # if not self.client_allergen_conflict(step):
         self.steps.append(step)
 
         return self
@@ -296,7 +347,7 @@ class Recipe(db.Model):
     def __repr__(self):
         s = self.name
         if self.ingredients:  # s.count() > 0
-            s += '\n----------------------------------'
+            s += '\n\n----------------------------------'
             for i in self.ingredients:
                 s += '\n{0}'.format(i)
         s += '\n----------------------------------'
@@ -309,93 +360,53 @@ class Ingredient(db.Model):
     __tablename__ = 'ingredient'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True, unique=True)
-    # nickname = db.Column(db.String(64), index=True, unique=True)
-    # email = db.Column(db.String(120), index=True, unique=True)
+    nutrition = db.Column(db.String(128))
+    description = db.Column(db.String(256))
     is_allergen = db.Column(db.Boolean, unique=False, default=True)
     timestamp = db.Column(db.DateTime)
-    # warnings = db.relationship('Ingredient_Warning', backref='ingredient', lazy='dynamic')
     type = db.Column(db.Enum('seafood', 'dairy', 'tree_nuts', name='allergen_groups'))
 
     def __repr__(self):
-        # return '<Ingredient %r>' % (self.name)
         s = 'Ingredient:\t{0} - Is Allergen:\t{1}'.format(
             self.name, self.is_allergen
         )
-        # for w in self.warnings:
-        #     s += '\nWarning: {0}'.format(w.text)
         return s
+
 
 class Step(db.Model):
     """docstring for """
     __tablename__ = 'step'
-    id = db.Column(db.Integer, primary_key=True)#step_no?
+    id = db.Column(db.Integer, primary_key=True)  # step_no?
     order_no = db.Column(db.Integer)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
 
-    # ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
-    # sub_recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
-
-    # ForeignKeyConstraint(['invoice_id', 'ref_num'], ['invoice.invoice_id', 'invoice.ref_num']),
-    # recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), primary_key=True)
-    # employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), primary_key=True)
-    # extra_data = db.Column(db.String(256))
     instructions = db.Column(db.String(256))
 
-    # recipe = db.relationship('Recipe', backref="recipe_assoc")
-    # sub_recipe = db.relationship(Recipe, backref="sub_recipe_assoc")
-    # ingredient = db.relationship(Ingredient, backref="ingredient_assoc")
-
-    # ingredient = db.relationship('Ingredient',
-    #                               secondary=step_ingredient,
-    #                               backref='step',
-    #                               # backref=db.backref('recipes', lazy='dynamic'))
-    #                               lazy='dynamic')
-
-    # ingredients = db.relationship(\
-    #     'Ingredient', secondary="step_ingredient", backref='step_ingredient_assoc', lazy='dynamic')
-    # ingredients = db.relationship("StepIngredient", backref="step")
-    ingredients = db.relationship('Ingredient',
-                                  secondary='step_ingredient',
-                                #   backref='step',
-                                  backref = db.backref( "steps", lazy='dynamic' ))
-
-    # sub_recipe = db.relationship('Recipe',
-    #                              secondary=step_sub_recipe,
-    #                              backref='step',
-    #                              # backref=db.backref('recipes', lazy='dynamic'))
-    #                              lazy='dynamic')
-
-    # sub_recipes = db.relationship(\
-    #     "Recipe", secondary='step_sub_recipe', backref='step_recipe_assoc')
-    # sub_recipes = db.relationship("StepSubRecipe", backref="step")
     sub_recipes = db.relationship('Recipe',
                                   secondary='step_sub_recipe',
-                                #   backref='step',
-                                  backref = db.backref( "step", lazy='dynamic' ))
+                                  backref=db.backref("step", lazy='dynamic')
+                                  )
+
+    ingredients = db.relationship('Ingredient',
+                                  secondary='step_ingredient',
+                                  backref='steps',
+                                  lazy='dynamic'
+                                  )
+
+    @property
+    def ingredientsV2(self):
+        return Ingredient.query. \
+            join(StepIngredient). \
+            filter(StepIngredient.step_id == self.id)
 
     @property
     def sub_recipesV2(self):
-        return Recipe.query.\
-        join(StepSubRecipe).\
-        filter(StepSubRecipe.step_id == self.id)
-
-    # def set_ingredient(self, ingredient):
-    #     if not self.has_ingredient(ingredient):
-    #     # if not self.client_allergen_conflict(ingredient):
-    #         self.ingredient.append(ingredient)
-    #         print 'Ingredient Set!'
-    #     else:
-    #         print 'Ingredient Not Set!'
-    #
-    #     return self
+        return Recipe.query. \
+            join(StepSubRecipe). \
+            filter(StepSubRecipe.step_id == self.id)
 
     def add_ingredient(self, ingredient):
-        # if not self.has_ingredient(ingredient):
-            # if not self.client_allergen_conflict(ingredient):
         self.ingredients.append(ingredient)
-        print 'Ingredient Added!'
-            # else:
-                # print 'Ingredient Not Added!'
 
         return self
 
@@ -405,9 +416,7 @@ class Step(db.Model):
         return self
 
     def has_ingredient(self, ingredient):
-        print 'step_has_ingredient start'
         b = self.ingredients.filter(Ingredient.id == ingredient.id).count() > 0
-        print 'has_ingredient end'
         return b
 
     def __repr__(self):
@@ -415,37 +424,6 @@ class Step(db.Model):
             self.order_no, self.instructions
         )
 
-# class Ingredient_Warning(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     text = db.Column(db.Text)
-#     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
-#
-#     def __repr__(self):
-#         #return '<Ingredient %r>' % (self.name)
-#         return 'Ingredient: {0}\nWarning: {1}'.format(
-#         self.ingredient.name, self.text
-#         )
-#
-# class Client_Warning(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     text = db.Column(db.Text)
-#     client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
-#
-#     def __repr__(self):
-#         s = 'Warning: {0}'.format(self.text)
-#         # if self.client:#s.count() > 0
-#         #     s += '\nClients:'
-#         #     for w in self.clients:
-#         #         s += '\nWarning: {0}'.format(w.text)
-#         return s
 
-# from classRecipe import Recipe
-# from classIngredient import Ingredient
-# class Recipe_Ingredient(db.Model):
-#     __tablename__ = 'recipe_ingredient'
-#     id = db.Column(db.Integer, primary_key=True)
-#     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
-#     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
-#
-#     recipe = db.relationship('Recipe', backref='ingredient_recipe')
-#     ingredient = db.relationship('Ingredient', backref='recipe_ingredient')
+if enable_search:
+    whooshalchemy.whoosh_index(app, Recipe)
