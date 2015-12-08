@@ -1,7 +1,8 @@
 #!flask/bin/python
 import os
-import unittest, datetime
-from datetime import timedelta, date
+import unittest
+import datetime
+from datetime import date, timedelta
 from config import basedir
 from app import app, db
 from app.models import *  # Client, Recipe, Step, Ingredient, Menu
@@ -18,6 +19,23 @@ class TestCaseClient(unittest.TestCase):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
         self.app = app.test_client()
         db.create_all()
+
+        self.myMenu = Menu(start_date=date.today(), end_date=date.today())
+        self.myRecipe = Recipe(name='Flourless Chocolate Cake',
+                               description='A rich chocolate cake encrusted with nuts.',
+                               style='baked',
+                               type='dessert')
+        self.myIngredient = Ingredient(name='Hazelnut',
+                                       description='Also known as filbert',
+                                       timestamp=datetime.utcnow(),
+                                       type='tree_nut')
+
+        db.session.add(self.myMenu)
+        db.session.add(self.myIngredient)
+        db.session.add(self.myRecipe)
+        self.myRecipe.add_ingredient(self.myIngredient)
+
+        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
@@ -51,8 +69,117 @@ class TestCaseClient(unittest.TestCase):
 
         self.assertEqual(client.nickname, None, 'Client nickname should be None')
 
+        ingredient = Ingredient.query.first()
 
-class TestCase(unittest.TestCase):
+        client.add_allergen(ingredient)
+        db.session.add(client)
+        db.session.commit()
+
+        client = Client.query.filter(Client.name == 'Randall Spencer').first()
+
+        self.assertEqual(client.allergens.count(), 1, 'Client should have one allergen!')
+
+        r = Recipe.query.first()
+
+        client.add_recipe(r)
+
+        self.assertNotIn(r, client.recipes,
+                         'Client should not contain the recipe {0} because they suffer from an allergy to {1} and '
+                         'the recipe contains {2}'.format(
+                             r.name, client.allergens.first().name, r.ingredients.first().name))
+
+        print client.allergens
+        print client.recipes
+
+
+class TestCaseAllergenAlternatives(unittest.TestCase):
+    def setUp(self):
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
+        self.app = app.test_client()
+        db.create_all()
+
+        create_ingredient(self)
+
+        self.myRecipe = Recipe(name='BLT',
+                               description='Bacon, Lettuce & Tomato Sandwich',
+                               style='mixed',
+                               type='lunch'
+                               )
+        db.session.add(self.myRecipe)
+        db.session.commit()
+
+        self.myStep = Step(order_no=1,
+                           recipe=self.myRecipe,
+                           instructions='Mix flour with water until smooth.  '
+                                        'Slowly add mixture to soup base while stirring.')
+
+        self.myStepIngredient = StepIngredient(step=self.myStep, ingredient=self.myIngredient1)
+        db.session.add(self.myStepIngredient)
+        db.session.commit()
+
+        self.myAllergenAlt1 = AllergenAlternative(step=self.myStep,
+                                                  ingredient_id=self.myIngredient1.id,
+                                                  alt_ingredient_id=self.myIngredient2.id,
+                                                  notes='use half the amount')
+        db.session.add(self.myAllergenAlt1)
+        self.myAllergenAlt2 = AllergenAlternative(step=self.myStep,
+                                                  ingredient_id=self.myIngredient1.id,
+                                                  alt_ingredient_id=self.myIngredient3.id,
+                                                  notes='use 1/4 the amount')
+        db.session.add(self.myAllergenAlt2)
+        db.session.commit()
+
+        print self.myAllergenAlt1
+        print self.myAllergenAlt2
+        # print self.myStepIngredient.alternatives
+        print 'Count: {0}.'.format(self.myStepIngredient.alternatives.count())
+
+        for idx,alt in enumerate(self.myStepIngredient.alternatives.all()):
+            print alt
+            print idx
+
+        self.myClient = Client(name='Randall Spencer',
+                               nickname='Randi -- dotted with a heart, of course!',
+                               email='randallspencer@gmail.com',
+                               home_phone='555-555-5555',
+                               mobile_phone='+1-333-333-3333',
+                               work_phone='1-777-777-7777'
+                               )
+        db.session.add(self.myClient)
+        db.session.commit()
+        self.myClient.add_allergen(self.myIngredient1)
+        db.session.add(self.myClient)
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def test_AllergenAlternative(self):
+        self.assertTrue(self.myStepIngredient.requires_alternative(self.myClient),
+                        'This step should require alternatives.')
+
+        self.assertEquals(self.myStepIngredient.alternatives.count, 2, 'There should be 2 alternative ingredients')
+
+        print 'TEST START'
+        print AllergenAlternative.query.all()
+        print AllergenAlternative.query.count()
+        print 'TEST END'
+
+
+def create_ingredient(self):
+    self.myIngredient1 = Ingredient(name='Wheat Flour')
+    self.myIngredient2 = Ingredient(name='Cornstarch')
+    self.myIngredient3 = Ingredient(name='Arrowroot Powder')
+    db.session.add(self.myIngredient1)
+    db.session.add(self.myIngredient2)
+    db.session.add(self.myIngredient3)
+    db.session.commit()
+
+
+class TestCaseIngredient(unittest.TestCase):
     def setUp(self):
         app.config['TESTING'] = True
         app.config['WTF_CSRF_ENABLED'] = False
@@ -75,18 +202,8 @@ class TestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
 
-    def test_ingredients(self):
-        # c = Client(name = 'Randall Spencer',\
-        #            nickname = 'Randi -- dotted with a heart, of course!',\
-        #            email = 'randallspencer@gmail.com',\
-        #            home_phone = '555-555-5555',\
-        #            mobile_phone = '+1-333-333-3333',\
-        #            work_phone = '1-777-777-7777'
-        #            )
-        # db.session.add(c)
-        # db.session.commit()
-
-        r1 = Recipe(name='Mango Habanero Hot Sauce', recipe_type='sauce')
+    def test_Ingredient(self):
+        r1 = Recipe(name='Mango Habanero Hot Sauce', type='sauce')
 
         # cc1 = c.add_recipe(r1)
         cc1 = self.myClient.add_recipe(r1)
@@ -116,12 +233,12 @@ class TestCase(unittest.TestCase):
         ss1 = Step.query.first()
 
         ing1 = ss1.ingredients.filter(Ingredient.name == 'Blueberries (frozen)').first()
-        ing1 = ss1.ingredients.filter(Ingredient.name == 'Blueberries (frozen)').first()
+        ing2 = ss1.ingredients.filter(Ingredient.name == 'Peaches (fresh)').first()
 
-        self.assertEquals(i1, ing, "Expected {0}, but got {1}".format(i1, ing))
+        self.assertEquals(i1, ing1, "Expected {0}, but got {1}".format(i1, ing1))
         # self.assertEquals(i2, ss1.ingredients..filter(name == 'Peaches (fresh)'))
 
-        r2 = Recipe(name='Pie Crust', cooking_style='baked', recipe_type='bread')
+        r2 = Recipe(name='Pie Crust', style='baked', type='bread')
 
         ss2 = ss1.add_sub_recipe(r2)
         db.session.add(ss2)
@@ -132,6 +249,23 @@ class TestCase(unittest.TestCase):
         self.assertIsNotNone(result, 'This result is None')
         self.assertEqual(result.name, r2.name, 'These names are not the same')
 
+
+class TestCaseMenu(unittest.TestCase):
+    def setUp(self):
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
+        self.app = app.test_client()
+        db.create_all()
+
+        self.myRecipe = Recipe(name='', description='')
+        db.session.add(self.myRecipe)
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
     def test_Menu(self):
         start_date = date.today()
         menu = Menu(start_date=start_date, end_date=start_date + timedelta(days=7))
@@ -141,29 +275,102 @@ class TestCase(unittest.TestCase):
 
         menu = Menu.query.first()
 
-        self.assertEqual(menu.start_date.date(), start_date, 'Start date is wrong!  Is {0} but  should be {1}'. \
+        menu.add_recipe(self.myRecipe)
+
+        self.assertIn(self.myRecipe, menu.recipes, '{0} should be in this collection of recipes'.format(self.myRecipe))
+
+        self.assertEqual(menu.start_date.date(), start_date, 'Start date is wrong!  Is {0} but  should be {1}'.
                          format(start_date, menu.start_date))
+
         self.assertEqual(menu.end_date.date(), start_date + timedelta(days=7), 'End date is wrong!')
 
-        # def test_Recipe(self):
-        #     r1 = Recipe(name='Mango Habanero Hot Sauce', recipe_type='sauce')
-        #     r1.cooking_style = "sauce"
-        #     r1.description = "Firey-hot diesel like flavor with fruit background"
-        #     assert False
+
+class TestCaseRecipe(unittest.TestCase):
+    def setUp(self):
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
+        self.app = app.test_client()
+        db.create_all()
+
+        self.myRecipe = Recipe(name='BLT',
+                               description='Bacon, Lettuce & Tomato Sandwich',
+                               style='mixed',
+                               type='lunch'
+                               )
+        db.session.add(self.myRecipe)
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def test_Recipe(self):
+        recipe = Recipe.query.first()
+        self.assertEquals(recipe.name, 'BLT', 'Name should be BLT')
 
 
-# suite = unittest.TestLoader().loadTestsFromTestCase(TestCase)
-# unittest.TextTestRunner(verbosity=2).run(suite)
+class TestCaseOrder(unittest.TestCase):
+    def setUp(self):
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
+        self.app = app.test_client()
+        db.create_all()
 
-if __name__ == '__main__':
-    try:
-        unittest.main()
-    except:
-        pass
-    cov.stop()
-    cov.save()
-    print("\n\nCoverage Report:\n")
-    cov.report()
-    print("HTML version: " + os.path.join(basedir, "tmp/coverage/index.html"))
-    cov.html_report(directory='tmp/coverage')
-    cov.erase()
+        self.myClient = Client()
+        self.myClient = Client(name='Randall Spencer',
+                               nickname='Randi -- dotted with a heart, of course!',
+                               email='randallspencer@gmail.com',
+                               home_phone='555-555-5555',
+                               mobile_phone='+1-333-333-3333',
+                               work_phone='1-777-777-7777'
+                               )
+        db.session.add(self.myClient)
+        db.session.commit()
+
+        self.myRecipe = Recipe(name='', description='')
+        db.session.add(self.myRecipe)
+        db.session.commit()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+
+    def test_Order(self):
+        order = Order()
+        db.session.add(order)
+        db.session.commit()
+
+        recipe = Recipe.query.first()
+
+        order_item = OrderItem(order=order, recipe_id=recipe.id, quantity=3, each_serving=4, each_cost=8.88)
+        o = order.add_item(order_item)
+        db.session.add(o)
+        db.session.commit()
+
+        oo = Order.query.first()
+
+        self.assertEqual(oo.order_items.count(), 1, 'There should be one order item.')
+
+
+suite = unittest.TestLoader().loadTestsFromTestCase(TestCaseClient)
+suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestCaseIngredient))
+suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestCaseOrder))
+suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestCaseMenu))
+suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestCaseRecipe))
+suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestCaseAllergenAlternatives))
+unittest.TextTestRunner(verbosity=2).run(suite)
+
+# if __name__ == '__main__':
+#     try:
+#         unittest.main()
+#     except:
+#         pass
+#     cov.stop()
+#     cov.save()
+#     print("\n\nCoverage Report:\n")
+#     cov.report()
+#     print("HTML version: " + os.path.join(basedir, "tmp/coverage/index.html"))
+#     cov.html_report(directory='tmp/coverage')
+#     cov.erase()

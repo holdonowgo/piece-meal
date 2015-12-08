@@ -46,6 +46,13 @@ client_recipes = db.Table('client_recipes',
                           db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id'))
                           )
 
+
+client_menu = db.Table('client_menu',
+                       db.Column('client_id', db.Integer, db.ForeignKey('client.id')),
+                       db.Column('menu_id', db.Integer, db.ForeignKey('menu.id'))
+                       )
+
+
 client_allergens = db.Table('client_allergens',
                             db.Column('client_id', db.Integer, db.ForeignKey('client.id')),
                             db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
@@ -65,11 +72,45 @@ recipe_ingredients = db.Table('recipe_ingredients',
 #                         )
 
 # # this made need to become an Association Table
-# # we need to know how much of the recipe is needed for this partiucular step
+# # we need to know how much of the recipe is needed for this particular step
 # # maybe even more notes
 # step_sub_recipe = db.Table('step_sub_recipe',
 #                            db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
 #                            db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id'))
+
+
+# allergen_alternative = db.Table('allergen_alternative',
+#                                 db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id')),
+#                                 db.Column('alt_ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
+#                           )
+
+
+class AllergenAlternative(db.Model):
+    __tablename__ = 'allergen_alternative'
+    # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
+    # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'))
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'))
+    # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
+    notes = db.Column(db.String(50))
+    alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
+
+    __table_args__ = (
+        db.PrimaryKeyConstraint(
+            ['step_id', 'ingredient_id'],
+            ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
+        ),
+    )
+
+    # step = db.relationship('Step', foreign_keys=[step_id])
+    # ingredient = db.relationship("Ingredient", foreign_keys=[ingredient_id])
+    # alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
+    # step_ingredient = db.relationship('StepIngredient', foreign_keys=[step_id, ingredient_id])
+
+    def __repr__(self):
+        return 'Step #{0} substitute {1} for {2} with the following notes {3}'\
+            .format(self.step_id, self.ingredient_id, self.alt_ingredient_id, self.notes)
+
 
 class StepSubRecipe(db.Model):
     __tablename__ = 'step_sub_recipe'
@@ -85,7 +126,7 @@ class StepSubRecipe(db.Model):
 
 
 # # this made need to become an Association Table
-# # we need to know how much of the ingredient is needed for this partiucular step
+# # we need to know how much of the ingredient is needed for this particular step
 # # maybe even more notes
 # step_ingredient = db.Table('step_ingredient',
 #                            db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
@@ -98,8 +139,24 @@ class StepIngredient(db.Model):
     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
     measurement = db.Column(db.String(50))
 
-    # step = db.relationship("Step", backref="step_ingredient_assocs")
+    step = db.relationship("Step", backref="step_ingredient_assocs")
     ingredient = db.relationship("Ingredient", backref="step_ingredient")
+
+    def requires_alternative(self, client):
+        return Ingredient.query.join(client_allergens, (client_allergens.c.ingredient_id == self.ingredient_id))\
+                                .filter(client_allergens.c.client_id == client.id).count() > 0
+
+    # alternatives = db.relationship('Ingredient',
+    #                                secondary=AllergenAlternative.__table__,
+    #                                primaryjoin='and_(StepIngredient.step_id==AllergenAlternative.step_id, '
+    #                                            'StepIngredient.ingredient_id==AllergenAlternative.ingredient_id)',
+    #                                # secondaryjoin=ingredient_id==AllergenAlternative.ingredient_id,
+    #                                secondaryjoin='and_(Ingredient.id==AllergenAlternative.ingredient_id)',
+    #                                backref=db.backref('original', lazy='dynamic'),
+    #                                # backref='ingredients',
+    #                                lazy='dynamic')
+
+    alternatives = db.relationship("AllergenAlternative", foreign_keys=[step_id, ingredient_id])
 
     def __repr__(self):
         return '{0} of {1}'.format(self.measurement, self.ingredient.name)
@@ -146,6 +203,11 @@ class Client(db.Model):
                                 # backref=db.backref('clients', lazy='dynamic'))
                                 lazy='dynamic')
 
+    menus = db.relationship('Menu',
+                            secondary=client_menu,
+                            backref='clients',
+                            lazy='dynamic')
+
     # allergens = db.relationship('Client_Allergen',
     #             # secondary=client_allergen,
     #             backref='clients', lazy='dynamic')
@@ -165,6 +227,13 @@ class Client(db.Model):
             # if fa.count() == 0
             if not self.is_allergic(recipe):
                 self.recipes.append(recipe)
+
+        return self
+
+    def add_menu(self, menu):
+        if not self.has_menu(menu):
+            if not self.is_allergic(menu):
+                self.menus.append(menu)
 
         return self
 
@@ -195,6 +264,9 @@ class Client(db.Model):
 
     def has_recipe(self, recipe):
         return self.recipes.filter(Recipe.id == recipe.id).count() > 0
+
+    def has_menu(self, menu):
+        return self.menus.filter(Menu.id == menu.id).count() > 0
 
     def add_allergen(self, ingredient):
         if not self.has_allergen(ingredient):
@@ -279,10 +351,10 @@ class Recipe(db.Model):
     __searchable__ = ['description']
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), index=True, unique=True)
+    name = db.Column(db.String(128), index=True, unique=True, nullable=False)
     description = db.Column(db.String(128))
-    cooking_style = db.Column(db.Enum('fried', 'baked', 'roasted', 'mixed', name='cooking_style'))
-    recipe_type = db.Column(db.Enum('breakfast', 'lunch', 'dinner', 'snack', 'sauce', 'bread'))
+    style = db.Column(db.Enum('fried', 'baked', 'roasted', 'mixed', name='cooking_style'))
+    type = db.Column(db.Enum('breakfast', 'lunch', 'dinner', 'snack', 'sauce', 'bread', 'dessert', name='recipe_type'))
 
     ingredients = db.relationship('Ingredient',
                                   secondary=recipe_ingredients,
@@ -291,13 +363,15 @@ class Recipe(db.Model):
                                   lazy='dynamic')
 
     # def followed_posts(self):
-    #     return Post.query.join(followers, (followers.c.followed_id == Post.user_id)).filter(followers.c.follower_id == self.id).order_by(Post.timestamp.desc())
+    #     return Post.query.join(followers, (followers.c.followed_id == Post.user_id))\
+    #                      .filter(followers.c.follower_id == self.id).order_by(Post.timestamp.desc())
     #
     #     Customer.query.\
     #      join(Branch).\
     #      join(Branch.salesmanagers).\
     #      filter(SalesManager.id == 1).all()
 
+    @property
     def ingredientsV2(self):
         return Ingredient.query. \
             join(Step). \
@@ -354,6 +428,10 @@ class Recipe(db.Model):
         s += '\n'
         return s
 
+    @staticmethod
+    def get_catalogue():
+        return Recipe.query.order_by(Recipe.name)
+
 
 ### classIngredient.py
 class Ingredient(db.Model):
@@ -364,7 +442,7 @@ class Ingredient(db.Model):
     description = db.Column(db.String(256))
     is_allergen = db.Column(db.Boolean, unique=False, default=True)
     timestamp = db.Column(db.DateTime)
-    type = db.Column(db.Enum('seafood', 'dairy', 'tree_nuts', name='allergen_groups'))
+    type = db.Column(db.Enum('seafood', 'dairy', 'tree_nut', name='allergen_groups'))
 
     def __repr__(self):
         s = 'Ingredient:\t{0} - Is Allergen:\t{1}'.format(
@@ -389,7 +467,7 @@ class Step(db.Model):
 
     ingredients = db.relationship('Ingredient',
                                   secondary='step_ingredient',
-                                  backref='steps',
+                                  # backref='steps',
                                   lazy='dynamic'
                                   )
 
@@ -423,6 +501,41 @@ class Step(db.Model):
         return 'Step #:\t{0}\nInstructions:\t{1}'.format( \
             self.order_no, self.instructions
         )
+
+
+class Order(db.Model):
+    __tablename__ = 'order'
+    id = db.Column(db.Integer, primary_key=True)
+
+    order_items = db.relationship('OrderItem', backref='order', lazy='dynamic')
+
+    def add_item(self, item):
+        self.order_items.append(item)
+
+        return self
+
+    @property
+    def items(self):
+        return OrderItem.query.filter(OrderItem.order_id == self.id)
+
+
+class OrderItem(db.Model):
+    tablename = 'order_item'
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    each_serving = db.Column(db.Integer, nullable=False)
+    each_cost = db.Column(db.DECIMAL)
+
+    # order = db.relationship("Order", backref="order_items", lazy='dynamic')
+
+    @property
+    def recipe(self):
+        return Recipe.query.filter(Recipe.id == self.recipe_id).first()
+
+    @property
+    def total_cost(self):
+        return self.quantity * self.each_cost
 
 
 if enable_search:

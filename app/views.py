@@ -1,7 +1,7 @@
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm, oid
-from .forms import LoginForm
+from .forms import LoginForm, IngredientEditForm
 from .models import User, Recipe, Ingredient, Step, Client
 from config import POSTS_PER_PAGE
 
@@ -87,18 +87,25 @@ def oauth_callback(provider):
     return redirect(url_for('index'))
 
 
+@app.route('/recipe/book')
+def recipe_book(page=1):
+    recipes = Recipe.get_catalogue().paginate(page, POSTS_PER_PAGE, False)
+    return render_template('recipe_book.html',
+                           recipes=recipes)
+
+
 # @app.route('/recipe/<name>')
-@app.route('/recipe/<int:id>')
+@app.route('/recipe/<int:_id>')
 # @login_required
-def recipe(id, page=1):
-    recipe = Recipe.query.filter_by(id=id).first()
-    if recipe is None:
-        flash('Recipe %s not found.' % name)
+def recipe(_id, page=1):
+    r = Recipe.query.filter_by(id=_id).first()
+    if r is None:
+        flash('Recipe %s not found.' % r.name)
         return redirect(url_for('index'))
-    ingredients = recipe.ingredients.paginate(page, POSTS_PER_PAGE, False)
+    ingredients = r.ingredients.paginate(page, POSTS_PER_PAGE, False)
     steps = recipe.steps.paginate(page, POSTS_PER_PAGE, False)
     return render_template('recipe.html',
-                           recipe=recipe,
+                           recipe=r,
                            ingredients=ingredients,
                            steps=steps)
 
@@ -109,17 +116,17 @@ def step(recipe_id, step_id):
     return render_template('step.html', step=s)
 
 
-@app.route('/ingredient/<int:id>')
-def ingredient(id):
-    i = Ingredient.query.get(id)
+@app.route('/ingredient/<int:_id>')
+def ingredient(_id):
+    i = Ingredient.query.get(_id)
     return render_template('ingredient.html', ingredient=i)
 
 
-@app.route('/ingredient/<int:id>/edit', methods=['GET', 'POST'])
+@app.route('/ingredient/<int:_id>/edit', methods=['GET', 'POST'])
 # @login_required
-def edit():
-    i = Ingredient.query.get(id)
-    form = IngredientEditForm(int(id))
+def edit(_id):
+    i = Ingredient.query.get(_id)
+    form = IngredientEditForm(int(_id))
     if form.validate_on_submit():
         i.name = form.name.data
         i.description = form.description.data

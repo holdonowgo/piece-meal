@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+<!DOCTYPE html>
+
+<!-- recipes is a Paginate object -->
+      {% for recipe in recipes.items %}
+          {% include 'recipe.html' %}
+      {% endfor %}
+
+      <ul class="pager">
+          {% if recipes.has_prev %}
+          <li class="previous"><a href="{{ url_for('recipe_book', page=recipes.prev_num) }}">Newer recipes</a></li>
+          {% else %}
+          <li class="previous disabled"><a href="#">Newer recipes</a></li>
+          {% endif %}
+          {% if recipes.has_next %}
+          <li class="next"><a href="{{ url_for('recipe_book', page=recipes.next_num) }}">Older recipes</a></li>
+          {% else %}
+          <li class="next disabled"><a href="#">Older recipes</a></li>
+          {% endif %}
+      </ul>
+</html>
