@@ -25,6 +25,7 @@ class TestCaseClient(unittest.TestCase):
                                description='A rich chocolate cake encrusted with nuts.',
                                style='baked',
                                type='dessert')
+        self.myStep = Step(order_no=1, recipe=self.myRecipe, instructions='Crush Hazelnuts')
         self.myIngredient = Ingredient(name='Hazelnut',
                                        description='Also known as filbert',
                                        timestamp=datetime.utcnow(),
@@ -33,7 +34,10 @@ class TestCaseClient(unittest.TestCase):
         db.session.add(self.myMenu)
         db.session.add(self.myIngredient)
         db.session.add(self.myRecipe)
-        self.myRecipe.add_ingredient(self.myIngredient)
+        db.session.add(self.myStep)
+        self.myStep.add_ingredient(self.myIngredient)
+        self.myRecipe.add_step(self.myStep)
+        db.session.add(self.myRecipe)
 
         db.session.commit()
 
@@ -78,6 +82,9 @@ class TestCaseClient(unittest.TestCase):
         client = Client.query.filter(Client.name == 'Randall Spencer').first()
 
         self.assertEqual(client.allergens.count(), 1, 'Client should have one allergen!')
+        self.assertEqual(client._allergens.first().name,
+                         'Hazelnut',
+                         'Allergen name should be ''Hazelnut'' and not {0}'.format(client._allergens.first().name))
 
         r = Recipe.query.first()
 
@@ -86,10 +93,7 @@ class TestCaseClient(unittest.TestCase):
         self.assertNotIn(r, client.recipes,
                          'Client should not contain the recipe {0} because they suffer from an allergy to {1} and '
                          'the recipe contains {2}'.format(
-                             r.name, client.allergens.first().name, r.ingredients.first().name))
-
-        print client.allergens
-        print client.recipes
+                             r.name, client.allergens.first(), r.ingredients.first()))
 
 
 class TestCaseAllergenAlternatives(unittest.TestCase):
@@ -114,31 +118,45 @@ class TestCaseAllergenAlternatives(unittest.TestCase):
                            recipe=self.myRecipe,
                            instructions='Mix flour with water until smooth.  '
                                         'Slowly add mixture to soup base while stirring.')
+        db.session.add(self.myStep)
 
         self.myStepIngredient = StepIngredient(step=self.myStep, ingredient=self.myIngredient1)
         db.session.add(self.myStepIngredient)
         db.session.commit()
 
-        self.myAllergenAlt1 = AllergenAlternative(step=self.myStep,
-                                                  ingredient_id=self.myIngredient1.id,
-                                                  alt_ingredient_id=self.myIngredient2.id,
-                                                  notes='use half the amount')
+        self.myAllergenAlt1 = AllergenAlternative(
+            # step=self.myStep,
+            # ingredient_id=self.myIngredient1.id,
+            step_ingredient=self.myStepIngredient,
+            alt_ingredient_id=self.myIngredient2.id,
+            notes='use half the amount')
         db.session.add(self.myAllergenAlt1)
-        self.myAllergenAlt2 = AllergenAlternative(step=self.myStep,
-                                                  ingredient_id=self.myIngredient1.id,
-                                                  alt_ingredient_id=self.myIngredient3.id,
-                                                  notes='use 1/4 the amount')
+        self.myAllergenAlt2 = AllergenAlternative(
+            # step=self.myStep,
+            # ingredient_id=self.myIngredient1.id,
+            step_ingredient=self.myStepIngredient,
+            alt_ingredient_id=self.myIngredient3.id,
+            notes='use 1/4 the amount')
         db.session.add(self.myAllergenAlt2)
         db.session.commit()
 
-        print self.myAllergenAlt1
-        print self.myAllergenAlt2
-        # print self.myStepIngredient.alternatives
-        print 'Count: {0}.'.format(self.myStepIngredient.alternatives.count())
+        # print self.myRecipe.steps.count()
+        #
+        # print self.myStep.ingredients.count()
+        #
+        # print self.myStep.step_ingredients.count()
 
-        for idx,alt in enumerate(self.myStepIngredient.alternatives.all()):
-            print alt
-            print idx
+        # print self.myAllergenAlt1
+        # print self.myAllergenAlt2
+        # print self.myStepIngredient.alternatives
+        # print 'Count: {0}.'.format(self.myStepIngredient.alternatives.count)
+        #
+        # for idx,alt in enumerate(self.myStepIngredient.alternatives):
+        #     print alt
+        #     print idx
+
+        # for alt in AllergenAlternative.query.all():
+        #     print alt
 
         self.myClient = Client(name='Randall Spencer',
                                nickname='Randi -- dotted with a heart, of course!',
@@ -161,12 +179,12 @@ class TestCaseAllergenAlternatives(unittest.TestCase):
         self.assertTrue(self.myStepIngredient.requires_alternative(self.myClient),
                         'This step should require alternatives.')
 
-        self.assertEquals(self.myStepIngredient.alternatives.count, 2, 'There should be 2 alternative ingredients')
+        self.assertEquals(self.myStepIngredient.alt_ingredients.count(), 2, 'There should be 2 alternative ingredients')
 
-        print 'TEST START'
-        print AllergenAlternative.query.all()
-        print AllergenAlternative.query.count()
-        print 'TEST END'
+        # print 'TEST START'
+        # print AllergenAlternative.query.all()
+        # print AllergenAlternative.query.count()
+        # print 'TEST END'
 
 
 def create_ingredient(self):

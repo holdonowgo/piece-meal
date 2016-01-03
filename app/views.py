@@ -1,7 +1,7 @@
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm, oid
-from .forms import LoginForm, IngredientEditForm
+from .forms import LoginForm, IngredientEditForm, EditClientForm
 from .models import User, Recipe, Ingredient, Step, Client
 from config import POSTS_PER_PAGE
 
@@ -100,7 +100,8 @@ def recipe_book(page=1):
 def recipe(_id, page=1):
     r = Recipe.query.filter_by(id=_id).first()
     if r is None:
-        flash('Recipe %s not found.' % r.name)
+        # flash('Recipe %s not found.' % r.name)
+        flash('Recipe not found.')
         return redirect(url_for('index'))
     ingredients = r.ingredients.paginate(page, POSTS_PER_PAGE, False)
     steps = recipe.steps.paginate(page, POSTS_PER_PAGE, False)
@@ -138,5 +139,29 @@ def edit(_id):
         form.name.data = i.name
         form.description.data = i.description
     return render_template('edit_ingredient.html', form=form)
+
+
+@app.route('/client/<int:_id>/edit', methods=['GET', 'POST'])
+# @login_required
+def edit_client(_id):
+    c = Client.query.get(_id)
+    form = EditClientForm()
+    if form.validate_on_submit():
+        c.name = form.name.data
+        c.nickname = form.nickname.data
+        c.email = form.email.data
+        c.mobile_phone = form.mobile_phone.data
+        # g.user.about_me = form.about_me.data
+        db.session.add(c)
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('client'))
+    else:
+        form.name.data = c.name
+        form.nickname.data = c.nickname
+        form.email.data = c.email
+        form.mobile_phone.data = c.mobile_phone
+        # form.about_me.data = g.user.about_me
+    return render_template('edit_client.html', form=form)
 
 # END OAuth

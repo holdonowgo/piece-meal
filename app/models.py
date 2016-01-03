@@ -87,29 +87,30 @@ recipe_ingredients = db.Table('recipe_ingredients',
 
 class AllergenAlternative(db.Model):
     __tablename__ = 'allergen_alternative'
-    # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
-    # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
-    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'))
-    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'))
-    # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
-    notes = db.Column(db.String(50))
-    alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
-
     __table_args__ = (
-        db.PrimaryKeyConstraint(
+        db.ForeignKeyConstraint(
             ['step_id', 'ingredient_id'],
             ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
         ),
     )
 
+    # id = db.Column(db.Integer, primary_key=True)
+    # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
+    # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+    alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
+    notes = db.Column(db.String(50))
+    # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
+
     # step = db.relationship('Step', foreign_keys=[step_id])
     # ingredient = db.relationship("Ingredient", foreign_keys=[ingredient_id])
     # alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
-    # step_ingredient = db.relationship('StepIngredient', foreign_keys=[step_id, ingredient_id])
+    step_ingredient = db.relationship('StepIngredient', backref='alternatives', foreign_keys=[step_id, ingredient_id])
 
     def __repr__(self):
-        return 'Step #{0} substitute {1} for {2} with the following notes {3}'\
-            .format(self.step_id, self.ingredient_id, self.alt_ingredient_id, self.notes)
+        return 'Step #{0} substitute {1} for {2} with the following notes: "{3}"'\
+            .format(self.step_id, self.alt_ingredient_id, self.ingredient_id, self.notes)
 
 
 class StepSubRecipe(db.Model):
@@ -139,7 +140,7 @@ class StepIngredient(db.Model):
     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
     measurement = db.Column(db.String(50))
 
-    step = db.relationship("Step", backref="step_ingredient_assocs")
+    # step = db.relationship("Step", backref="step_ingredients")
     ingredient = db.relationship("Ingredient", backref="step_ingredient")
 
     def requires_alternative(self, client):
@@ -156,7 +157,18 @@ class StepIngredient(db.Model):
     #                                # backref='ingredients',
     #                                lazy='dynamic')
 
-    alternatives = db.relationship("AllergenAlternative", foreign_keys=[step_id, ingredient_id])
+    # alternatives = db.relationship("AllergenAlternative", foreign_keys=[step_id, ingredient_id])
+
+    # alternatives = db.relationship("AllergenAlternative",
+    #                                primaryjoin="StepIngredient.step_id==StepIngredient.step_id,"
+    #                                            "StepIngredient.ingredient_id==StepIngredient.ingredient_id")
+
+    @property
+    def alt_ingredients(self):
+        return AllergenAlternative.query.filter(
+            AllergenAlternative.step_id == self.step_id,
+            AllergenAlternative.ingredient_id == self.ingredient_id)\
+            .order_by(AllergenAlternative.alt_ingredient_id)
 
     def __repr__(self):
         return '{0} of {1}'.format(self.measurement, self.ingredient.name)
@@ -199,14 +211,26 @@ class Client(db.Model):
 
     allergens = db.relationship('Ingredient',
                                 secondary=client_allergens,
-                                backref='clients',
-                                # backref=db.backref('clients', lazy='dynamic'))
+                                # backref='clients',
+                                backref=db.backref('client', lazy='dynamic'),
+                                # foreign_keys=[id],
                                 lazy='dynamic')
 
     menus = db.relationship('Menu',
                             secondary=client_menu,
                             backref='clients',
                             lazy='dynamic')
+
+    # @property
+    # def _allergens(self):
+    #     return db.session.query(client_allergens).filter(client_allergens.c.client_id == self.id)
+
+    @property
+    def _allergens(self):
+        return Ingredient.query \
+            .join(client_allergens) \
+            .filter(Ingredient.id == client_allergens.c.ingredient_id,
+                    client_allergens.c.client_id == self.id)
 
     # allergens = db.relationship('Client_Allergen',
     #             # secondary=client_allergen,
@@ -246,8 +270,12 @@ class Client(db.Model):
             .join(Step) \
             .filter(Ingredient.id == StepIngredient.ingredient_id,
                     StepIngredient.step_id == Step.id,
-                    Step.recipe_id == recipe.id).all()
+                    Step.recipe_id == recipe.id)
         # print 'Recipe.query.filter(Recipe.id == recipe.id).first().ingredients'
+        # from pprint import pprint
+        # pprint(Ingredient.query.all())
+        # pprint(StepIngredient.query.all())
+        # pprint(Step.query.all())
         for a in alrgns:
             for i in ingrdnts:
                 if a.ingredient_id == i.id:
@@ -470,6 +498,8 @@ class Step(db.Model):
                                   # backref='steps',
                                   lazy='dynamic'
                                   )
+
+    step_ingredients = db.relationship('StepIngredient', backref='step', lazy='dynamic')
 
     @property
     def ingredientsV2(self):
