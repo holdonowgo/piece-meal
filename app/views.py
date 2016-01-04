@@ -1,7 +1,7 @@
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm, oid
-from .forms import LoginForm, IngredientEditForm, EditClientForm
+from .forms import LoginForm, IngredientEditForm, EditClientForm, EditStepForm
 from .models import User, Recipe, Ingredient, Step, Client
 from config import POSTS_PER_PAGE
 
@@ -104,7 +104,7 @@ def recipe(_id, page=1):
         flash('Recipe not found.')
         return redirect(url_for('index'))
     ingredients = r.ingredients.paginate(page, POSTS_PER_PAGE, False)
-    steps = recipe.steps.paginate(page, POSTS_PER_PAGE, False)
+    steps = r.steps.paginate(page, POSTS_PER_PAGE, False)
     return render_template('recipe.html',
                            recipe=r,
                            ingredients=ingredients,
@@ -117,6 +117,29 @@ def step(recipe_id, step_id):
     return render_template('step.html', step=s)
 
 
+@app.route('/recipe/<int:recipe_id>/step/<int:step_id>/edit')
+def edit_step(recipe_id, step_id):
+    s = Step.query.filter_by(recipe_id=recipe_id, id=step_id).first()
+    form = EditStepForm()
+    if s is None:
+        # flash('Recipe %s not found.' % r.name)
+        flash('Recipe Step not found.')
+        return redirect(url_for('recipe'))
+    elif form.validate_on_submit():
+        s.order_no = form.order_no.data
+        s.instructions = form.instructions.data
+        # s.ingredients = form.ingredients.data
+        db.session.add(s)
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('step'))
+    elif request.method != "POST":
+        form.order_no.data = s.order_no
+        form.instructions.data = s.instructions
+        # form.ingredients.data = s.ingredientsV2.all()
+    return render_template('edit_step.html', step=s, form=form)
+
+
 @app.route('/ingredient/<int:_id>')
 def ingredient(_id):
     i = Ingredient.query.get(_id)
@@ -125,10 +148,14 @@ def ingredient(_id):
 
 @app.route('/ingredient/<int:_id>/edit', methods=['GET', 'POST'])
 # @login_required
-def edit(_id):
+def edit_ingredient(_id):
     i = Ingredient.query.get(_id)
-    form = IngredientEditForm(int(_id))
-    if form.validate_on_submit():
+    form = IngredientEditForm()
+    if i is None:
+        # flash('Recipe %s not found.' % r.name)
+        flash('Ingredient not found.')
+        return redirect(url_for('index'))
+    elif form.validate_on_submit():
         i.name = form.name.data
         i.description = form.description.data
         db.session.add(i)
@@ -137,7 +164,9 @@ def edit(_id):
         return redirect(url_for('ingredient'))
     elif request.method != "POST":
         form.name.data = i.name
+        form.nutrition.data = i.nutrition
         form.description.data = i.description
+        form.is_allergen.data = i.is_allergen
     return render_template('edit_ingredient.html', form=form)
 
 

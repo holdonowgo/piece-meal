@@ -7,11 +7,35 @@
       <div class="jumbotron">
         <div class="row">
           <div class="col-lg-3">
-            <h1>{{recipe.name}}</h1>
+            <h1>{{recipe.name}} {{recipe.nutrition}}</h1>
             {% if recipe.nutrition %}<p>{{ recipe.nutrition }}</p>{% endif %}
             <!-- {% if recipe.last_seen %}<p><i>Last seen on: {{ user.last_seen }}</i></p>{% endif %} -->
             <p class="important">{{ recipe.ingredients.count() }} ingredients |
-            <p>{{ recipe.steps.count() }} steps</p>
+            {{ recipe.steps.count() }} steps</p>
+          </div>
+          <div class="col-lg-3">
+            {% if recipe.steps %}
+            {% for step in recipe.steps %}
+              <p>Step #{{ step.order_no }}:<br/>
+              {{ step.instructions }}</p>
+            {#<div class="panel-group" id="accordion">
+              <div class="panel panel-default" id="panel" + {{ step.order_id }}>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    <a data-toggle="collapse"
+                       data-target="#collapse" + {{ step.order_no }} href="#collapse" + {{ step.order_no }}>
+                      Step # {{ step.order_no }}
+                    </a>
+                  </h4>
+
+                </div>
+                <div id="collapse" + {{ step.order_no }} class="panel-collapse collapse in">
+                  <div class="panel-body">{{ step.instructions }}</div>
+                </div>
+              </div>
+            </div>#}
+            {% endfor %}
+            {% endif %}
           </div>
           <div class="col-lg-9">
           {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
@@ -32,9 +56,9 @@
           <button type="submit" class = "btn btn-success btn-xs">Success</button>
           <button type="submit" class = "btn btn-warning btn-lg">Warning</button>
           <button type="submit" class = "btn btn-link btn-lg">Link</button>
-          <button type="submit" class = "btn-primary btn-sm">
+          {#<button type="submit" class = "btn-primary btn-sm">
               <a href="{{url_for('/ingredient/{% recipe.id %}/edit')}}">Edit</a>
-          </button>
+          </button>#}
         </p>
       </div>
 
@@ -44,7 +68,7 @@
 {#        <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12">#}
 {##}
 {#        <!-- We can collapse or hide data on the screen -->#}
-{#        <h4><a href="#col{{ loop.index }}Content" data-toggle="collapse">{{ step.order_id }}</a></h4>#}
+{#        <h4><a href="#col{{ loop.index }}Content" data-toggle="collapse">{{ step.order_no }}</a></h4>#}
 {##}
 {#        <!-- With collapse in this div shows on load -->#}
 {#        <div id="col{{ loop.index }}Content" class="collapse in"><p><h4>{{ step.instructions }}HERE!</h4></p></div>#}

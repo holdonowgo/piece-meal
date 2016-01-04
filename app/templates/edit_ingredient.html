@@ -3,11 +3,11 @@
 
 {% block content %}
 <h1>Edit Ingredient</h1>
-<form action="" method="post" name="edit">
+<form action="" method="post" name="edit_ingredient">
     {{ form.hidden_tag() }}
     <table>
         <tr>
-            <td>Ingredient name:</td>
+            <td>Name:</td>
             <td>
                 {{ form.name(size=24) }}
                 {% for error in form.errors.name %}
@@ -16,8 +16,21 @@
             </td>
         </tr>
         <tr>
+            <td>Nutrition:</td>
+            <td>
+                {{ form.nutrition(size=50) }}
+                {% for error in form.errors.name %}
+                <br><span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
             <td>Description:</td>
             <td>{{ form.description(cols=32, rows=4) }}</td>
+        </tr>
+        <tr>
+            <td>Allergen:</td>
+            <td>{{ form.allergen(size=10) }}</td>
         </tr>
         <tr>
             <td></td>
