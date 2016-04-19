@@ -3,118 +3,44 @@
 
 {% block content %}
 
-    <div class="container">
-      <div class="jumbotron">
-        <div class="row">
-          <div class="col-lg-3">
-            <h1>{{recipe.name}} {{recipe.nutrition}}</h1>
-            {% if recipe.nutrition %}<p>{{ recipe.nutrition }}</p>{% endif %}
-            <!-- {% if recipe.last_seen %}<p><i>Last seen on: {{ user.last_seen }}</i></p>{% endif %} -->
-            <p class="important">{{ recipe.ingredients.count() }} ingredients |
-            {{ recipe.steps.count() }} steps</p>
-          </div>
-          <div class="col-lg-3">
-            {% if recipe.steps %}
-            {% for step in recipe.steps %}
-              <p>Step #{{ step.order_no }}:<br/>
-              {{ step.instructions }}</p>
-            {#<div class="panel-group" id="accordion">
-              <div class="panel panel-default" id="panel" + {{ step.order_id }}>
-                <div class="panel-heading">
-                  <h4 class="panel-title">
-                    <a data-toggle="collapse"
-                       data-target="#collapse" + {{ step.order_no }} href="#collapse" + {{ step.order_no }}>
-                      Step # {{ step.order_no }}
-                    </a>
-                  </h4>
 
-                </div>
-                <div id="collapse" + {{ step.order_no }} class="panel-collapse collapse in">
-                  <div class="panel-body">{{ step.instructions }}</div>
-                </div>
-              </div>
-            </div>#}
-            {% endfor %}
-            {% endif %}
-          </div>
-          <div class="col-lg-9">
-          {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
-          </div>
+<div class="container">
+    <div class="row">
+        <div class="col s12 m9 l6">
+            <ul class="collection with-header">
+                <li class="collection-header"><h4>{{recipe.name}}</h4></li>
+                {% for ingredient in recipe.ingredientsV2 %}
+                <li class="collection-item">
+                    <div>{{ ingredient.name }}
+                        <a href="#!" class="secondary-content"><i class="material-icons">send</i></a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
         </div>
-        <div class="btn-group btn-group-lg" role="group" aria-label="...">
-          <button type="button" class="btn btn-default">Small</button>
-          <button type="button" class="btn btn-default">Medium</button>
-          <button type="button" class="btn btn-default">Large</button>
-        </div>
-        <!-- BUTTONS -->
-        <!-- There are many built in button colors and sizes. If a link is to trigger in page functionality it should use role="button". The button element should be used in most situations -->
-        <p><br/>
-          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a>
-          <button type="submit" class = "btn btn-danger" role = "button">Button</button>
-          <input type="button" value="Info" class = "btn btn-info">
-          <button type="submit" class = "btn-primary btn-sm">Primary</button>
-          <button type="submit" class = "btn btn-success btn-xs">Success</button>
-          <button type="submit" class = "btn btn-warning btn-lg">Warning</button>
-          <button type="submit" class = "btn btn-link btn-lg">Link</button>
-          {#<button type="submit" class = "btn-primary btn-sm">
-              <a href="{{url_for('/ingredient/{% recipe.id %}/edit')}}">Edit</a>
-          </button>#}
-        </p>
-      </div>
+    </div>
 
-<!-- For different sized columns divide up the 12 -->
-{#<div class="container">#}
-{#    {% for step in recipe.steps %}#}
-{#        <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12">#}
-{##}
-{#        <!-- We can collapse or hide data on the screen -->#}
-{#        <h4><a href="#col{{ loop.index }}Content" data-toggle="collapse">{{ step.order_no }}</a></h4>#}
-{##}
-{#        <!-- With collapse in this div shows on load -->#}
-{#        <div id="col{{ loop.index }}Content" class="collapse in"><p><h4>{{ step.instructions }}HERE!</h4></p></div>#}
-{#        </div>#}
-{#    {% endfor %}#}
-{#  <div class="row">#}
-{#    <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12">#}
-{##}
-{#      <!-- We can collapse or hide data on the screen -->#}
-{#      <h4><a href="#col1Content" data-toggle="collapse">Column 1</a></h4>#}
-{##}
-{#      <!-- With collapse in this div shows on load -->#}
-{#      <div id="col1Content" class="collapse in">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean fringilla at libero at finibus a pretium justo nulla sit amet nunc. Vestibulum finibus, lacus at gravida condimentum, tellus mauris imperdiet orci.</div>#}
-{#    </div>#}
-{##}
-{#    <div class="col-lg-4 col-md-4 col-sm-8 col-xs-12">#}
-{#      <h4><a href="#col2Content" data-toggle="collapse">Column 2</a></h4>#}
-{##}
-{#      <!-- With class collapse this div won't show on load -->#}
-{#      <div id="col2Content" class="collapse">Quisque rutrum augue odio, eu placerat diam bibendum id. Donec at fringilla leo, non varius magna. Vestibulum finibus, lacus at gravida condimentum, tellus mauris imperdiet orci, a pretium justo nulla sit amet nunc. Class aptent taciti sociosqu ad litora torquent per conubia.</div>#}
-{#    </div>#}
-{##}
-{#    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">#}
-{#      <h4><a href="#col3Content" data-toggle="collapse">Column 3</a></h4>#}
-{#      <div id="col3Content" class="collapse"><h4>Pellentesque vulputate faucibus leo, non blandit ante faucibus maximus. Nunc non neque laoreet, tincidunt nisl et, tristique odio. Nullam imperdiet sollicitudin neque malesuada ornare. Curabitur ultrices urna id gravida lacinia. Nunc eu neque vitae nisi luctus rhoncus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac.</h4></div>#}
-{#    </div>#}
-{#      <br>#}
-{#    <dl>#}
-{#    <dt>Coffee</dt>#}
-{#    <dd>- black hot drink</dd>#}
-{#    <dt>Milk</dt>#}
-{#    <dd>- white cold drink</dd>#}
-{#  </dl>#}
-{#</div><br>#}
-{##}
-{#      <div class="row>">#}
-{#        <div class="col-ld-3 col-md-3 col-sm-6 col-xs-12">#}
-{#          {% for ingredient in recipe.ingredients %}#}
-{#              {% include 'ingredient.html' %}#}
-{#          {% endfor %}#}
-{#        </div>#}
-{#        <div class="col-ld-9 col-md-9 col-sm-6 col-xs-12">#}
-{#          {% for step in recipe.steps %}#}
-{#              {% include 'step.html' %}#}
-{#          {% endfor %}#}
-{#        /</div>#}
-{#      </div>#}
-{#    </div>#}
+    <ul class="collapsible" data-collapsible="expandable">
+        {% for step in recipe.steps %}
+        <li>
+            <div class="collapsible-header"><i class="material-icons">filter_drama</i>Step {{ step.order_no }}</div>
+            <div class="collapsible-body"><p>{{ step.instructions }}</p></div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<nav>
+  <ul class="right hide-on-med-and-down">
+    <li><a href="#!">First Sidebar Link</a></li>
+    <li><a href="#!">Second Sidebar Link</a></li>
+  </ul>
+  <ul id="slide-out" class="side-nav">
+    <li><a href="#!">First Sidebar Link</a></li>
+    <li><a href="#!">Second Sidebar Link</a></li>
+  </ul>
+  <a href="#" data-activates="slide-out" class="button-collapse"><i class="mdi-navigation-menu"></i></a>
+</nav>
+
+
 {% endblock %}

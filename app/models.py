@@ -1,7 +1,18 @@
 from app import db
+from app import ma
 from app import app
+from flask import jsonify
+from flask_login import UserMixin
 from datetime import datetime
+
+from marshmallow import fields
+from werkzeug.security import check_password_hash, generate_password_hash
 import sys
+
+from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
+from marshmallow_sqlalchemy import ModelSchema, field_for
+from flask_marshmallow.sqla import HyperlinkRelated
 
 if sys.version_info >= (3, 0):
     enable_search = False
@@ -13,32 +24,62 @@ else:
 # User (Resource Owner)
 # A user, or resource owner, is usually the registered user on your site.
 # You design your own user model, there is not much to say.
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
+    password_hash = db.Column(db.String)
+
+    @property
+    def password(self):
+        raise AttributeError('password: write_only field')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    @staticmethod
+    def get_by_username(username):
+        return User.query.filter_by(username=username).first()
 
     # posts = db.relationship('Post', backref='author', lazy='dynamic')
 
-    @property
-    def is_authenticated(self):
-        return True
-
-    @property
-    def is_active(self):
-        return True
-
-    @property
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        try:
-            return unicode(self.id)  # python 2
-        except NameError:
-            return str(self.id)  # python 3
+    # @property
+    # def is_authenticated(self):
+    #     return True
+    #
+    # @property
+    # def is_active(self):
+    #     return True
+    #
+    # @property
+    # def is_anonymous(self):
+    #     return False
+    #
+    # def get_id(self):
+    #     try:
+    #         return unicode(self.id)  # python 2
+    #     except NameError:
+    #         return str(self.id)  # python 3
 
     def __repr__(self):
-        return '<User %r>' % self.nickname
+        return '<User %r>' % self.username
+
+
+class UserSchema(ma.ModelSchema):
+    class Meta:
+        model = User
+        # fields = ("id", "email", "username", '_links')
+        exclude = ("password",)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        # 'self': ma.URLFor('_get_user', user_name='<username>'),
+        'collection': ma.URLFor('_get_users')
+    })
 
 
 client_recipes = db.Table('client_recipes',
@@ -46,12 +87,10 @@ client_recipes = db.Table('client_recipes',
                           db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id'))
                           )
 
-
 client_menu = db.Table('client_menu',
                        db.Column('client_id', db.Integer, db.ForeignKey('client.id')),
                        db.Column('menu_id', db.Integer, db.ForeignKey('menu.id'))
                        )
-
 
 client_allergens = db.Table('client_allergens',
                             db.Column('client_id', db.Integer, db.ForeignKey('client.id')),
@@ -85,32 +124,82 @@ recipe_ingredients = db.Table('recipe_ingredients',
 #                           )
 
 
-class AllergenAlternative(db.Model):
-    __tablename__ = 'allergen_alternative'
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['step_id', 'ingredient_id'],
-            ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
-        ),
-    )
+### classIngredient.py
 
-    # id = db.Column(db.Integer, primary_key=True)
-    # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
-    # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
-    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
-    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+
+class IngredientAlternative(db.Model):
+    __tablename__ = 'ingredient_alternative'
+    # __table_args__ = (
+    #     db.ForeignKeyConstraint(
+    #         ['step_id', 'ingredient_id'],
+    #         ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
+    #     ),
+    # )
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
     alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
     notes = db.Column(db.String(50))
-    # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'))
 
-    # step = db.relationship('Step', foreign_keys=[step_id])
-    # ingredient = db.relationship("Ingredient", foreign_keys=[ingredient_id])
-    # alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
-    step_ingredient = db.relationship('StepIngredient', backref='alternatives', foreign_keys=[step_id, ingredient_id])
+    orig_ingredient = db.relationship("Ingredient", foreign_keys=[ingredient_id])
+    alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
 
-    def __repr__(self):
-        return 'Step #{0} substitute {1} for {2} with the following notes: "{3}"'\
-            .format(self.step_id, self.alt_ingredient_id, self.ingredient_id, self.notes)
+    # def __repr__(self):
+    #     return 'Step #{0} substitute {1} for {2} with the following notes: "{3}"'\
+    #         .format(self.step_id, self.alt_ingredient_id, self.ingredient_id, self.notes)
+
+
+class Ingredient(db.Model):
+    __tablename__ = 'ingredient'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), index=True, unique=True)
+    nutrition = db.Column(db.String(128))
+    description = db.Column(db.String(256))
+    is_allergen = db.Column(db.Boolean, unique=False, default=True)
+    timestamp = db.Column(db.DateTime)
+    type = db.Column(db.Enum('seafood', 'dairy', 'tree_nut', name='allergen_groups'))
+
+    # alternatives = db.relationship('Ingredient',
+    #                               secondary='allergen_alternative',
+    #                               backref=db.backref('orig_ingredients', lazy='dynamic'),
+    #                               lazy='dynamic')
+
+    # alternatives = db.relationship('Ingredient',
+    #                                secondary='ingredient_alternative',
+    #                                backref=db.backref('orig_ingredients', lazy='dynamic'),
+    #                                lazy='dynamic')
+
+    # alternatives = db.relationship("Ingredient",
+    #                                secondary=IngredientAlternative,
+    #                                primaryjoin=id == IngredientAlternative.ingredient_id,
+    #                                secondaryjoin=id == IngredientAlternative.alt_ingredient_id,
+    #                                backref="orig_ingredients",
+    #                                lazy='dynamic')
+
+    alternatives = db.relationship('Ingredient',
+                                   secondary='ingredient_alternative',
+                                   primaryjoin=(IngredientAlternative.ingredient_id == id),
+                                   secondaryjoin=(IngredientAlternative.alt_ingredient_id == id),
+                                   backref=db.backref('ingredient_alternative', lazy='dynamic'),
+                                   lazy='dynamic')
+
+    def add_alternative(self, ingredient):
+        if not self.has_alternative(ingredient):
+            self.alternatives.append(ingredient)
+
+        return self
+
+    def has_alternative(self, ingredient):
+        return self.alternatives.filter(Ingredient.id == ingredient.id).count() > 0
+
+    # def __repr__(self):
+    #     s = '<Ingredient:\t{0} - Is Allergen:\t{1}>'.format(
+    #         self.name, self.is_allergen
+    #     )
+    #     return s
+
+    @staticmethod
+    def all():
+        return Ingredient.query.all()
+        # Sreturn 'salt, pepper, milk'
 
 
 class StepSubRecipe(db.Model):
@@ -126,14 +215,6 @@ class StepSubRecipe(db.Model):
         return '{0} of {1}'.format(self.measurement, self.recipe.name)
 
 
-# # this made need to become an Association Table
-# # we need to know how much of the ingredient is needed for this particular step
-# # maybe even more notes
-# step_ingredient = db.Table('step_ingredient',
-#                            db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
-#                            db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
-#                            )
-
 class StepIngredient(db.Model):
     __tablename__ = 'step_ingredient'
     step_id = db.Column(db.Integer, db.ForeignKey('step.id'), primary_key=True)
@@ -144,8 +225,8 @@ class StepIngredient(db.Model):
     ingredient = db.relationship("Ingredient", backref="step_ingredient")
 
     def requires_alternative(self, client):
-        return Ingredient.query.join(client_allergens, (client_allergens.c.ingredient_id == self.ingredient_id))\
-                                .filter(client_allergens.c.client_id == client.id).count() > 0
+        return Ingredient.query.join(client_allergens, (client_allergens.c.ingredient_id == self.ingredient_id)) \
+                   .filter(client_allergens.c.client_id == client.id).count() > 0
 
     # alternatives = db.relationship('Ingredient',
     #                                secondary=AllergenAlternative.__table__,
@@ -167,11 +248,144 @@ class StepIngredient(db.Model):
     def alt_ingredients(self):
         return AllergenAlternative.query.filter(
             AllergenAlternative.step_id == self.step_id,
-            AllergenAlternative.ingredient_id == self.ingredient_id)\
+            AllergenAlternative.ingredient_id == self.ingredient_id) \
             .order_by(AllergenAlternative.alt_ingredient_id)
 
     def __repr__(self):
         return '{0} of {1}'.format(self.measurement, self.ingredient.name)
+
+
+class AllergenAlternative(db.Model):
+    __tablename__ = 'allergen_alternative'
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['step_id', 'ingredient_id'],
+            ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
+        ),
+    )
+
+    # id = db.Column(db.Integer, primary_key=True)
+    # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
+    # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
+    alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
+    notes = db.Column(db.String(50))
+
+    # ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
+    # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
+
+    orig_ingredient = db.relationship("StepIngredient", foreign_keys=[step_id, ingredient_id])
+    alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
+
+    # step_ingredient = db.relationship('StepIngredient', backref='alternatives', foreign_keys=[step_id, ingredient_id])
+
+    def __repr__(self):
+        return 'Step #{0} substitute {1} for {2} with the following notes: "{3}"' \
+            .format(self.step_id, self.alt_ingredient_id, self.ingredient_id, self.notes)
+
+
+### classRecipe.py
+class Recipe(db.Model):
+    __tablename__ = 'recipe'
+    __searchable__ = ['description']
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), index=True, unique=True, nullable=False)
+    description = db.Column(db.String(128))
+    style = db.Column(db.Enum('fried', 'baked', 'roasted', 'mixed', name='cooking_style'))
+    type = db.Column(db.Enum('breakfast', 'lunch', 'dinner', 'snack', 'sauce', 'bread', 'dessert', name='recipe_type'))
+
+    # ingredients = db.relationship('Ingredient',
+    #                               secondary=recipe_ingredients,
+    #                               backref='recipes',
+    #                               # backref=db.backref('recipes', lazy='dynamic'))
+    #                               lazy='dynamic')
+
+    # ingredients = db.relationship("Ingredient",
+    #                 primaryjoin="and_(User.id==Address.user_id, Address.city=='Boston')",
+    #                               primaryjoin=)
+
+    # ingredients = db.relationship("Step.ingredients", backref='recipe', lazy='dynamic')
+
+    # def followed_posts(self):
+    #     return Post.query.join(followers, (followers.c.followed_id == Post.user_id))\
+    #                      .filter(followers.c.follower_id == self.id).order_by(Post.timestamp.desc())
+    #
+    #     Customer.query.\
+    #      join(Branch).\
+    #      join(Branch.salesmanagers).\
+    #      filter(SalesManager.id == 1).all()
+
+    @property
+    def ingredientsV2(self):
+        return Ingredient.query. \
+            join(StepIngredient). \
+            join(Step). \
+            filter(Step.recipe_id == self.id)
+
+    #   TODO need to define 'ingredients' for Recipe
+
+    # steps = db.relationship('Step',
+    #                         secondary=recipe_steps,
+    #                         backref='steps',
+    #                         # backref=db.backref('recipes', lazy='dynamic'))
+    #                         lazy='dynamic')
+
+    steps = db.relationship('Step', backref='recipe', lazy='dynamic')
+
+    def has_ingredient(self, ingredient):
+        b = self.ingredients.filter(Ingredient.id == ingredient.id).count() > 0
+        return b
+
+    def client_allergen_conflict(self, ingredient):
+        query = db.session.query(Client). \
+            join(client_recipes). \
+            join(client_allergens). \
+            filter(client_recipes.c.recipe_id == self.id). \
+            filter(client_allergens.c.ingredient_id == ingredient.id). \
+            filter(Client.id == client_recipes.c.recipe_id).count()
+        if query > 0:
+            return True
+        else:
+            return False
+
+    def add_ingredient(self, ingredient):
+        if not self.has_ingredient(ingredient):
+            if not self.client_allergen_conflict(ingredient):
+                self.ingredients.append(ingredient)
+
+        return self
+
+    def add_step(self, step):
+        # if not self.has_step(step):
+        # if not self.client_allergen_conflict(step):
+        self.steps.append(step)
+
+        return self
+
+    def __repr__(self):
+        s = self.name
+        if self.ingredients:  # s.count() > 0
+            s += '\n\n----------------------------------'
+            for i in self.ingredients:
+                s += '\n{0}'.format(i)
+        s += '\n----------------------------------'
+        s += '\n'
+        return s
+
+    @staticmethod
+    def get_catalogue():
+        return Recipe.query.order_by(Recipe.name)
+
+
+# # this made need to become an Association Table
+# # we need to know how much of the ingredient is needed for this particular step
+# # maybe even more notes
+# step_ingredient = db.Table('step_ingredient',
+#                            db.Column('step_id', db.Integer, db.ForeignKey('step.id')),
+#                            db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredient.id'))
+#                            )
 
 
 # # from classClient import Client
@@ -373,112 +587,6 @@ class Menu(db.Model):
         return result
 
 
-### classRecipe.py
-class Recipe(db.Model):
-    __tablename__ = 'recipe'
-    __searchable__ = ['description']
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), index=True, unique=True, nullable=False)
-    description = db.Column(db.String(128))
-    style = db.Column(db.Enum('fried', 'baked', 'roasted', 'mixed', name='cooking_style'))
-    type = db.Column(db.Enum('breakfast', 'lunch', 'dinner', 'snack', 'sauce', 'bread', 'dessert', name='recipe_type'))
-
-    ingredients = db.relationship('Ingredient',
-                                  secondary=recipe_ingredients,
-                                  backref='recipes',
-                                  # backref=db.backref('recipes', lazy='dynamic'))
-                                  lazy='dynamic')
-
-    # def followed_posts(self):
-    #     return Post.query.join(followers, (followers.c.followed_id == Post.user_id))\
-    #                      .filter(followers.c.follower_id == self.id).order_by(Post.timestamp.desc())
-    #
-    #     Customer.query.\
-    #      join(Branch).\
-    #      join(Branch.salesmanagers).\
-    #      filter(SalesManager.id == 1).all()
-
-    @property
-    def ingredientsV2(self):
-        return Ingredient.query. \
-            join(Step). \
-            join(Step.ingredients). \
-            filter(Step.recipe_id == self.id)
-
-    #   TODO need to define 'ingredients' for Recipe
-
-    # steps = db.relationship('Step',
-    #                         secondary=recipe_steps,
-    #                         backref='steps',
-    #                         # backref=db.backref('recipes', lazy='dynamic'))
-    #                         lazy='dynamic')
-
-    steps = db.relationship('Step', backref='recipe', lazy='dynamic')
-
-    def has_ingredient(self, ingredient):
-        b = self.ingredients.filter(Ingredient.id == ingredient.id).count() > 0
-        return b
-
-    def client_allergen_conflict(self, ingredient):
-        query = db.session.query(Client). \
-            join(client_recipes). \
-            join(client_allergens). \
-            filter(client_recipes.c.recipe_id == self.id). \
-            filter(client_allergens.c.ingredient_id == ingredient.id). \
-            filter(Client.id == client_recipes.c.recipe_id).count()
-        if query > 0:
-            return True
-        else:
-            return False
-
-    def add_ingredient(self, ingredient):
-        if not self.has_ingredient(ingredient):
-            if not self.client_allergen_conflict(ingredient):
-                self.ingredients.append(ingredient)
-
-        return self
-
-    def add_step(self, step):
-        # if not self.has_step(step):
-        # if not self.client_allergen_conflict(step):
-        self.steps.append(step)
-
-        return self
-
-    def __repr__(self):
-        s = self.name
-        if self.ingredients:  # s.count() > 0
-            s += '\n\n----------------------------------'
-            for i in self.ingredients:
-                s += '\n{0}'.format(i)
-        s += '\n----------------------------------'
-        s += '\n'
-        return s
-
-    @staticmethod
-    def get_catalogue():
-        return Recipe.query.order_by(Recipe.name)
-
-
-### classIngredient.py
-class Ingredient(db.Model):
-    __tablename__ = 'ingredient'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), index=True, unique=True)
-    nutrition = db.Column(db.String(128))
-    description = db.Column(db.String(256))
-    is_allergen = db.Column(db.Boolean, unique=False, default=True)
-    timestamp = db.Column(db.DateTime)
-    type = db.Column(db.Enum('seafood', 'dairy', 'tree_nut', name='allergen_groups'))
-
-    def __repr__(self):
-        s = 'Ingredient:\t{0} - Is Allergen:\t{1}'.format(
-            self.name, self.is_allergen
-        )
-        return s
-
-
 class Step(db.Model):
     """docstring for """
     __tablename__ = 'step'
@@ -566,6 +674,157 @@ class OrderItem(db.Model):
     @property
     def total_cost(self):
         return self.quantity * self.each_cost
+
+
+class AllergenAlternativeSchema(ma.ModelSchema):
+    class Meta:
+        model = AllergenAlternative
+        # fields = ("step_id", "ingredient_id", "alt_ingredient_id", "notes", "step_ingredient", "_links")
+        exclude = ("password",)
+
+        # # Smart hyperlinking
+        # _links = ma.Hyperlinks({
+        #     'self': ma.URLFor('_get_allergen_alternative', step_id='<step_id>', ingredient_id='<ingredient_id>'),
+        #     'collection': ma.URLFor('_get_allergen_alternatives')
+        # })
+
+
+class IngredientSchema(ma.ModelSchema):
+    class Meta:
+        model = Ingredient
+        # fields = ("id", "name", "description", "style", "type", "_links")
+        exclude = ('step_ingredient', 'client',)
+
+    alternatives = ma.Nested('self', many=True,
+                             only=('_links', 'description', 'id', 'is_allergen', 'name', 'nutrition', 'timestamp'))
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_ingredient', id='<id>'),
+        'collection': ma.URLFor('_get_ingredients')
+    })
+
+
+class StepSubRecipeSchema(ma.ModelSchema):
+    class Meta:
+        model = StepSubRecipe
+        # fields = ("step_id", "recipe_id", "measurement", "_links")
+
+    # recipe = ma.Nested(RecipeSchema, many=True)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_step_sub_recipe', step_id='<step_id>', recipe_id='<recipe_id>'),
+        'collection': ma.URLFor('_get_step_sub_recipes')
+    })
+
+
+class StepIngredientSchema(ma.ModelSchema):
+    class Meta:
+        model = StepIngredient
+        # fields = ("step_id", "ingredient_id", "measurement", "_links")
+
+    # recipe = ma.Nested(RecipeSchema, many=True)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_step_ingredient', step_id='<step_id>', recipe_id='<recipe_id>'),
+        # 'collection': ma.URLFor('_get_step_ingredients')
+    })
+
+
+class StepSchema(ma.ModelSchema):
+    class Meta:
+        model = Step
+        # fields = ("id", "recipe_id", "instructions")
+
+    ingredients = ma.Nested(IngredientSchema, many=True)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_step', recipe_id='<recipe_id>', step_id='<id>'),
+        'collection': ma.URLFor('_get_steps', recipe_id='<recipe_id>')
+    })
+
+
+class RecipeSchema(ma.ModelSchema):
+    class Meta:
+        model = Recipe
+        # fields = ("id", "name", "description", "style", "type", "_links")
+        exclude = ('step', 'clients', 'step_sub_recipe')
+
+    steps = ma.Nested(StepSchema, many=True)
+
+    # sub_recipes = ma.Nested(StepSubRecipeSchema, many=True)
+    # ingredients = ma.Nested(StepIngredientSchema, many=True)
+    # ingredients = ma.Method("get_days_since_created", dump_only=True)
+    #
+    # def get_days_since_created(self, obj):
+    #     # return dt.datetime.now().day - obj.created_at.day
+    #     ingredients_schmea = IngredientSchema(many=True)
+    #     ingredients = db.session.query(Ingredient).all()
+    #     # return jsonify(ingredients_schmea.dump(ingredients))
+    #     return ingredients_schmea.jsonify(ingredients)
+    #     # print(db.session.query(User).all())
+    #     # print(db.session.query(Ingredient).all())
+    #     # return db.session.query(Ingredient).all()
+
+    # balance = fields.Method('get_balance', deserialize='load_balance', dump_only=True)
+    #
+    # def get_balance(self, obj):
+    #     return obj.name
+    #
+    # def load_balance(self, value):
+    #     return float(value)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_recipe', id='<id>'),
+        'collection': ma.URLFor('_get_recipes')
+    })
+
+
+class ClientSchema(ma.ModelSchema):
+    class Meta:
+        model = Client
+        # fields = ("id", "recipe_id", "instructions")
+
+    recipes = ma.Nested(RecipeSchema, many=True)
+
+    # pass Schema as string to avoid infinite circular relation between Clients & Recipes
+    menus = ma.Nested('MenuSchema', many=True, exclude=('client,'), dump_only=True, )
+
+    allergens = ma.Nested(IngredientSchema, many=True, only=("_links",
+                                                             "alternatives",
+                                                             "description",
+                                                             "id",
+                                                             "is_allergen",
+                                                             "name",
+                                                             "nutrition",
+                                                             "timestamp",
+                                                             "type"))
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_client', client_id='<id>'),
+        'collection': ma.URLFor('_get_clients')
+    })
+
+
+class MenuSchema(ma.ModelSchema):
+    class Meta:
+        model = Menu
+        # fields = ("id", "recipe_id", "instructions")
+
+    clients = ma.Nested(ClientSchema, many=True, exclude=('menu',), dump_only=True, )
+
+    recipes = ma.Nested(RecipeSchema, many=True)
+
+    # Smart hyperlinking
+    _links = ma.Hyperlinks({
+        'self': ma.URLFor('_get_menu', menu_id='<id>'),
+        'collection': ma.URLFor('_get_menus')
+    })
 
 
 if enable_search:

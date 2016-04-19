@@ -5,19 +5,20 @@ from datetime import date, timedelta
 from config import basedir
 from app.models import *
 from coverage import coverage
+import contextlib
 
 cov = coverage(branch=True, omit=['flask/*', 'tests.py'])
 cov.start()
 
-from sqlalchemy import MetaData
-
-meta = MetaData()
-
-with contextlib.closing(engine.connect()) as con:
-    trans = con.begin()
-    for table in reversed(meta.sorted_tables):
-        con.execute(table.delete())
-    trans.commit()
+# from sqlalchemy import MetaData
+#
+# meta = MetaData()
+#
+# with contextlib.closing(engine.connect()) as con:
+#     trans = con.begin()
+#     for table in reversed(meta.sorted_tables):
+#         con.execute(table.delete())
+#     trans.commit()
 
 # add a client
 c1 = Client(name='Randall Spencer',

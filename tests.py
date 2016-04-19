@@ -125,38 +125,16 @@ class TestCaseAllergenAlternatives(unittest.TestCase):
         db.session.commit()
 
         self.myAllergenAlt1 = AllergenAlternative(
-            # step=self.myStep,
-            # ingredient_id=self.myIngredient1.id,
             step_ingredient=self.myStepIngredient,
             alt_ingredient_id=self.myIngredient2.id,
             notes='use half the amount')
         db.session.add(self.myAllergenAlt1)
         self.myAllergenAlt2 = AllergenAlternative(
-            # step=self.myStep,
-            # ingredient_id=self.myIngredient1.id,
             step_ingredient=self.myStepIngredient,
             alt_ingredient_id=self.myIngredient3.id,
             notes='use 1/4 the amount')
         db.session.add(self.myAllergenAlt2)
         db.session.commit()
-
-        # print self.myRecipe.steps.count()
-        #
-        # print self.myStep.ingredients.count()
-        #
-        # print self.myStep.step_ingredients.count()
-
-        # print self.myAllergenAlt1
-        # print self.myAllergenAlt2
-        # print self.myStepIngredient.alternatives
-        # print 'Count: {0}.'.format(self.myStepIngredient.alternatives.count)
-        #
-        # for idx,alt in enumerate(self.myStepIngredient.alternatives):
-        #     print alt
-        #     print idx
-
-        # for alt in AllergenAlternative.query.all():
-        #     print alt
 
         self.myClient = Client(name='Randall Spencer',
                                nickname='Randi -- dotted with a heart, of course!',
@@ -180,11 +158,6 @@ class TestCaseAllergenAlternatives(unittest.TestCase):
                         'This step should require alternatives.')
 
         self.assertEquals(self.myStepIngredient.alt_ingredients.count(), 2, 'There should be 2 alternative ingredients')
-
-        # print 'TEST START'
-        # print AllergenAlternative.query.all()
-        # print AllergenAlternative.query.count()
-        # print 'TEST END'
 
 
 def create_ingredient(self):
@@ -254,7 +227,6 @@ class TestCaseIngredient(unittest.TestCase):
         ing2 = ss1.ingredients.filter(Ingredient.name == 'Peaches (fresh)').first()
 
         self.assertEquals(i1, ing1, "Expected {0}, but got {1}".format(i1, ing1))
-        # self.assertEquals(i2, ss1.ingredients..filter(name == 'Peaches (fresh)'))
 
         r2 = Recipe(name='Pie Crust', style='baked', type='bread')
 

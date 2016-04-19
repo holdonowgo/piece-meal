@@ -1,110 +1,34 @@
 <html>
   <head>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
-    <!--<link rel="stylesheet" type="text/css" href="/app/static/css/startbootstrap-small-business-1.0.4/css/bootstrap.css">-->
-    <!--<link rel="stylesheet" type="text/css" href="/app/static/css/startbootstrap-small-business-1.0.4/css/bootstrap.min.css">-->
-    <!--<link rel="stylesheet" type="text/css" href="/app/static/css/startbootstrap-small-business-1.0.4/css/small-business.css">-->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <link href="{{ url_for('static', filename='css/materialize.min.css') }}" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link href="{{ url_for('static', filename='css/style.css') }}" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style type="text/css">
-    body{
-      font-size: 62.5%;
-      font-family: arial, sans-serif;
-    }
-    </style>
-    <style>
-{#    .jumbotron{#}
-{#        background-color:#2E2D88;#}
-{#        color:white;#}
-{#        padding: 20px;#}
-{#    }#}
-    .jumbotron {
-    padding: 0.5em 0.6em;
-    h1 {
-        font-size: 2em;
-    }
-    p {
-        font-size: 1.2em;
-        .btn {
-            padding: 0.5em;
-        }
-    }
-}
-    /* Adds borders for tabs */
-    .tab-content {
-        border-left: 1px solid #ddd;
-        border-right: 1px solid #ddd;
-        border-bottom: 1px solid #ddd;
-        padding: 10px;
-    }
-    .nav-tabs {
-        margin-bottom: 0;
-    }
-    </style>
-    {% if title %}
-    <title>{{ title }} - prototype</title>
-    {% else %}
-    <title>Welcome to The Piece Meal Project</title>
-    {% endif %}
+      {% block styles %}
+      {% endblock %}
   </head>
   <body>
-    <!-- Collapsible Navigation Bar -->
-    <div class="container">
 
-    <!-- .navbar-fixed-top, or .navbar-fixed-bottom can be added to keep the nav bar fixed on the screen -->
-    <nav class="navbar navbar-default">
-      <div class="container-fluid">
-
-        <!-- Brand and toggle get grouped for better mobile display -->
-        <div class="navbar-header">
-
-          <!-- Button that toggles the navbar on and off on small screens -->
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-
-          <!-- Hides information from screen readers -->
-            <span class="sr-only"></span>
-
-            <!-- Draws 3 bars in navbar button when in small mode -->
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-
-          <!-- You'll have to add padding in your image on the top and right of a few pixels (CSS Styling will break the navbar) -->
-          <a class="pull-left" href="#"><img src="NTTLogosm.png"></a>
-        </div>
-
-        <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home <span class="sr-only">(current)</span></a></li>
-            <li><a href="#">About</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Contact Us <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">Email</a></li>
-                <li><a href="#">Phone</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="#">Set Appointment</a></li>
-              </ul>
-            </li>
-          </ul>
-          <!-- navbar-left will move the search to the left -->
-          <form class="navbar-form navbar-right" role="search">
-            <div class="form-group">
-              <input type="text" class="form-control" placeholder="Search">
-            </div>
-            <button type="submit" class="btn btn-default">Submit</button>
-          </form>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
-    </nav>
+    <div class="header-container">
+        <header class="wrapper clearfix">
+            <!--<a href=""{{ url_for('index') }}"><h1 class="title">Piece Meal</h1></a>-->
+            <nav>
+                <ul>
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('logout') }}">Sign Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
+                        <li><a href="{{ url_for('login') }}">Log In</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </header>
     </div>
 
-    <div>Piece Meal: <a href="/index">Home</a></div>
-    <hr>
+    <div class="main-container">
+        <div class="main wrapper clearfix">
+            <article class="flashes">
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul>
@@ -114,6 +38,19 @@
         </ul>
       {% endif %}
     {% endwith %}
+
+            </article>
+        </div>
+    </div>
     {% block content %}{% endblock %}
+    <script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.js">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="{{ url_for('static', filename='js/materialize.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/init.js') }}"></script>
+
+  {% block scripts %}
+  {% endblock %}
   </body>
 </html>

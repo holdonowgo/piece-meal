@@ -1,59 +1,95 @@
 <!-- extend base layout -->
 {% extends "base.html" %}
+{% from "form_macros.html" import render_field %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/select2.min.css') }}">
+{% endblock %}
 
 {% block content %}
-<h1>Edit Step</h1>
-<form action="" method="post" name="edit">
-    {{ form.hidden_tag() }}
-    <table>
-        <tr>
-            <td>Order #:</td>
-            <td>
-                {{ form.order_no(size=24) }}
-                {% for error in form.errors.name %}
-                <br><span style="color: red;">[{{ error }}]</span>
-                {% endfor %}
-            </td>
-        </tr>
-        <tr>
-            <td>Instructions:</td>
-            <td>
-                {{ form.instructions(size=50) }}
-                {% for error in form.errors.name %}
-                <br><span style="color: red;">[{{ error }}]</span>
-                {% endfor %}
-            </td>
-        </tr>
-        <tr>
-            <td>Ingredients:</td>
-            <td>
-                {% for ingredient in form.ingredients %}
-                <p>{{ ingredient }}</p>
-                {% endfor %}
-                {% for sub_recipe in form.sub_recipes %}
-                <p>{{ sub_recipe }}</p>
-                {% endfor %}
-            </td>
-        </tr>
-        <tr>
-            <td>IngredientsV2:</td>
-            <td>
-                {{ form.ingredients }}
-            </td>
-        </tr>
-        <tr>
-            <td></td>
-            <td><input type="submit" value="Save Changes"></td>
-        </tr>
-    </table>
-    <div class="select">
-        <select aria-label="Select menu example">
-            <option selected>Select Ingredient</option>
-            {% for ingredient in form.ingredients %}
-                <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
 
-</form>
+<div class="container">
+    <h2 style="clear:both">{{ step.recipe.name }} Step: {{ step.order_no }}</h2>
+    <form action="" method="post" name="edit" class="col s12 m9 l6">
+        {{ form.hidden_tag() }}
+        <div class="row">
+            <div class="input-field col s12 m9 l6">
+                {{ render_field(form.instructions, class="materialize-textarea") }}
+            </div>
+            <div class="col s12 m9 l6">
+                <ul class="collapsible" data-collapsible="expandable">
+                    {% for ingredient in ingredients %}
+                    <li>
+                        <div class="collapsible-header"><i class="material-icons">filter_drama</i>Ingredient {{ ingredient.name }}</div>
+                        <div class="collapsible-body"><p>{{ ingredient.description }}</p></div>
+                    </li>
+                    {% endfor %}
+                    <li>
+                        {#<div class="collapsible-header"><i class="material-icons">filter_drama</i>
+                            <div>
+                                {{ render_field(form.ingredient, id="ingredients") }}
+                            </div>
+                        </div>
+                        <div class="collapsible-body">
+                            <div>
+                                {{ render_field(form.ingredient) }}
+                            </div>
+                        </div>#}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="input-field col s12 m9 l6">
+                <div>
+                    <select class="browser-default">
+                        {% for ingredient in ingredients_all %}
+                        <option value="{{ ingredient.id }}">{{ ingredient.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="input-field col s12 m9 l6">
+                <div>
+                    {{ render_field(form.autocomp) }}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<nav>
+    <ul class="right hide-on-med-and-down">
+        <li><a href="#!">First Sidebar Link</a></li>
+        <li><a href="#!">Second Sidebar Link</a></li>
+    </ul>
+    <ul id="slide-out" class="side-nav">
+        <li><a href="#!">First Sidebar Link</a></li>
+        <li><a href="#!">Second Sidebar Link</a></li>
+    </ul>
+    <a href="#" data-activates="slide-out" class="button-collapse"><i class="mdi-navigation-menu"></i></a>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
+<script>
+    $(document).ready(function(){
+        var _ingredients = {{ all_ingredients()|map(attribute='name')|list|tojson|safe }};
+        $('#ingredients').select2({ingredients: _ingredients, tokenSeparators: [",", " "]});
+        }};
+
+    $(function() {
+    $.ajax({
+        url: '{{ url_for("autocomplete") }}'
+        }).done(function (data) {
+            $('#autocomplete').autocomplete({
+                source: data.json_list,
+                minLength: 2
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -1,74 +1,134 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="container">
-    <div class="jumbotron">
-    <h1>Hi, {{ client.name }}!</h1><br>
-    <h4>{{ client.address }}</h4><br>
-    <h4>{{ client.home_phone }}</h4><br>
-    <h4>{{ client.mobile_phone }}</h4>
-    {% for allergen in allergens %}
-    <div><p>Allergic to: <b>{{ allergen.name }}</b></p></div>
-    {% endfor %}
-    <br>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <title>Piece Meal</title>
 
-        <div class="btn-group btn-group-lg" role="group" aria-label="...">
-          <button type="button" class="btn btn-default">Edit Info</button>
-          <button type="button" class="btn btn-default">Add Recipe</button>
-          <button type="button" class="btn btn-default">View Allergens</button>
+  <!-- CSS  -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="../static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="../static/css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+</head>
+<body>
+  <nav class="light-blue lighten-1" role="navigation">
+    <div class="nav-wrapper container"><a id="logo-container" href="#" class="brand-logo">Logo</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="#">Navbar Link</a></li>
+      </ul>
+
+      <ul id="nav-mobile" class="side-nav">
+        <li><a href="#">Navbar Link</a></li>
+      </ul>
+      <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons">menu</i></a>
+    </div>
+  </nav>
+  <div class="section no-pad-bot" id="index-banner">
+    <div class="container">
+      <br><br>
+      <h1 class="header center orange-text">{% block title %}Piece Meal{% endblock %}</h1>
+      <div class="row center">
+        <h5 class="header col s12 light">An allergen-wise recipe management system based on ingredient modularity</h5>
+      </div>
+      <div class="row center">
+        <a href="http://materializecss.com/getting-started.html" id="download-button" class="btn-large waves-effect waves-light orange">Get Started</a>
+      </div>
+      <br><br>
+
+    </div>
+  </div>
+
+
+  <div class="container">
+    <div class="section">
+
+      <!--   Icon Section   -->
+      <div class="row">
+        <div class="col s12 m4">
+          <div class="icon-block">
+            <h2 class="center light-blue-text"><i class="material-icons">flash_on</i></h2>
+            <h5 class="center">Speeds up development</h5>
+
+            <p class="light">We've done a lot of first hand research into alternative ingredients for many food
+              allergens to provide a way to eat adventurously again. Additionally, we continually source new
+              ingredients and have fun with alternatives to provide new culinary experiences.</p>
+          </div>
         </div>
 
-    <button type="button" class="btn btn-default btn-lg">
-        <span class="glyphicon glyphicon-phone-alt" aria-hidden="=True"></span>
-        Call {{ client.name }}<br> {{ client.home_phone }}
-    </button>
+        <div class="col s12 m4">
+          <div class="icon-block">
+            <h2 class="center light-blue-text"><i class="material-icons">group</i></h2>
+            <h5 class="center">User Experience Focused</h5>
 
-            <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
-{#                <div class="carousel-inner">#}
-{#                    <div class="item active">#}
-{#                        {% for allergen in allergens %}#}
-{#                        {% if content.gal_porte %}#}
-{#                        <img src="{{content.gal_porte}}" class="img-responsive" alt="test">#}
-{#                        <div class="carousel-caption"></div>#}
-{#                    </div>#}
-{#                    <div class="item">#}
-{#                        {% for allergen in allergens %}#}
-{#                            <p>{{ allergen.name }}</p>#}
-{#                    <div class="carousel-caption">#}
-{#                                <p>{{ allergen.name }}</p>#}
-{#                            </div>#}
-{#                        {% endfor %}#}
-{#                    </div>#}
-{#                    <!-- Controls -->#}
-{#                    <a class="home-icon left" href="#carousel-example-generic" role="button" data-slide="prev"> <i class="fa fa-arrow-left"></i>#}
-{#                    </a> <a class="home-icon right" href="#carousel-example-generic" role="button" data-slide="next"> <i class="fa fa-arrow-right" style="text-align: right;"></i>#}
-{#                    </a>#}
-{#                </div>#}
-{#            </div>#}
+            <p class="light">We were able to give users the ability to customize their profiles and provide feedback
+              when drafting their own recipes. Additionally, a single underlying responsive system across all platforms
+              allow for a more unified user experience.</p>
+          </div>
+        </div>
 
-    <div class="carousel-inner">
-  {% for allergen in allergens %}
-  <div class="item{% if loop.index == 1 %} active{% endif %}">
-    <p>{{ allergen.name }}</p>
-        <p>
-          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a></p>
-    <div class="carousel-caption">
-        <h1>{{ allergen.name }} lololol</h1>
-        <p>This is just some placeholder text</p>
-        <p>
-          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a></p>
+        <div class="col s12 m4">
+          <div class="icon-block">
+            <h2 class="center light-blue-text"><i class="material-icons">settings</i></h2>
+            <h5 class="center">Easy to work with</h5>
+
+            <p class="light">We have provided detailed documentation to help new users get started. We are also always
+              open to feedback and can answer any questions a user may have about Piece Meal.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <br><br>
+
+    <div class="section">
+
     </div>
   </div>
-  {% endfor %}
-  <!-- Controls -->
-    <!-- Set the actions to take when the arrows are clicked -->
-  <a class="left carousel-control" href="##carousel-example-generic" data-slide="prev">
-  <span class="glyphicon glyphicon-chevron-left"> </span>
-  </a>
-  <a class="right carousel-control" href="##carousel-example-generic" data-slide="next">
-  <span class="glyphicon glyphicon-chevron-right"></span>
-  </a>
-  </div>
 
-</div>
+  <footer class="page-footer orange">
+    <div class="container">
+      <div class="row">
+        <div class="col l6 s12">
+          <h5 class="white-text">Company Bio</h5>
+          <p class="grey-text text-lighten-4">We are a team of college students working on this project like it's our full time job. Any amount would help support and continue development on this project and is greatly appreciated.</p>
+
+
+        </div>
+        <div class="col l3 s12">
+          <h5 class="white-text">Settings</h5>
+          <ul>
+            <li><a class="white-text" href="#!">Link 1</a></li>
+            <li><a class="white-text" href="#!">Link 2</a></li>
+            <li><a class="white-text" href="#!">Link 3</a></li>
+            <li><a class="white-text" href="#!">Link 4</a></li>
+          </ul>
+        </div>
+        <div class="col l3 s12">
+          <h5 class="white-text">Connect</h5>
+          <ul>
+            <li><a class="white-text" href="#!">Link 1</a></li>
+            <li><a class="white-text" href="#!">Link 2</a></li>
+            <li><a class="white-text" href="#!">Link 3</a></li>
+            <li><a class="white-text" href="#!">Link 4</a></li>
+          </ul>
+        </div>
+      </div>
     </div>
+    <div class="footer-copyright">
+      <div class="container">
+      Made by <a class="orange-text text-lighten-3" href="http://materializecss.com">Materialize</a>
+      </div>
+    </div>
+  </footer>
+
+
+  <!--  Scripts-->
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="../static/js/materialize.js"></script>
+  <script src="../static/js/init.js"></script>
+
+  </body>
+</html>
 {% endblock %}

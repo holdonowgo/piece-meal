@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+    <div class="jumbotron">
+    <h1>Hi, {{ client.name }}!</h1><br>
+    <h4>{{ client.address }}</h4><br>
+    <h4>{{ client.home_phone }}</h4><br>
+    <h4>{{ client.mobile_phone }}</h4>
+    {% for allergen in allergens %}
+    <div><p>Allergic to: <b>{{ allergen.name }}</b></p></div>
+    {% endfor %}
+    <br>
+
+        <div class="btn-group btn-group-lg" role="group" aria-label="...">
+          <button type="button" class="btn btn-default">Edit Info</button>
+          <button type="button" class="btn btn-default">Add Recipe</button>
+          <button type="button" class="btn btn-default">View Allergens</button>
+        </div>
+
+    <button type="button" class="btn btn-default btn-lg">
+        <span class="glyphicon glyphicon-phone-alt" aria-hidden="=True"></span>
+        Call {{ client.name }}<br> {{ client.home_phone }}
+    </button>
+
+            <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
+{#                <div class="carousel-inner">#}
+{#                    <div class="item active">#}
+{#                        {% for allergen in allergens %}#}
+{#                        {% if content.gal_porte %}#}
+{#                        <img src="{{content.gal_porte}}" class="img-responsive" alt="test">#}
+{#                        <div class="carousel-caption"></div>#}
+{#                    </div>#}
+{#                    <div class="item">#}
+{#                        {% for allergen in allergens %}#}
+{#                            <p>{{ allergen.name }}</p>#}
+{#                    <div class="carousel-caption">#}
+{#                                <p>{{ allergen.name }}</p>#}
+{#                            </div>#}
+{#                        {% endfor %}#}
+{#                    </div>#}
+{#                    <!-- Controls -->#}
+{#                    <a class="home-icon left" href="#carousel-example-generic" role="button" data-slide="prev"> <i class="fa fa-arrow-left"></i>#}
+{#                    </a> <a class="home-icon right" href="#carousel-example-generic" role="button" data-slide="next"> <i class="fa fa-arrow-right" style="text-align: right;"></i>#}
+{#                    </a>#}
+{#                </div>#}
+{#            </div>#}
+
+    <div class="carousel-inner">
+  {% for allergen in allergens %}
+  <div class="item{% if loop.index == 1 %} active{% endif %}">
+    <p>{{ allergen.name }}</p>
+        <p>
+          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a></p>
+    <div class="carousel-caption">
+        <h1>{{ allergen.name }} lololol</h1>
+        <p>This is just some placeholder text</p>
+        <p>
+          <a href="#" class = "btn btn-default btn-lg" role="button">More info</a></p>
+    </div>
+  </div>
+  {% endfor %}
+  <!-- Controls -->
+    <!-- Set the actions to take when the arrows are clicked -->
+  <a class="left carousel-control" href="##carousel-example-generic" data-slide="prev">
+  <span class="glyphicon glyphicon-chevron-left"> </span>
+  </a>
+  <a class="right carousel-control" href="##carousel-example-generic" data-slide="next">
+  <span class="glyphicon glyphicon-chevron-right"></span>
+  </a>
+  </div>
+
+</div>
+    </div>
+{% endblock %}
