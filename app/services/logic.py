@@ -1,3 +1,5 @@
+import collections
+
 from flask import render_template, flash, redirect, session, url_for, request, g, Response, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, oid
@@ -30,9 +32,10 @@ def get_users():
     return users_schema.dump(users).data
 
 
-def get_recipe(_id):
+def get_recipe(recipe_id):
     recipe_schema = models.RecipeSchema()
-    recipe = models.Recipe.query.filter(models.Recipe.id == _id).one()
+    recipe = models.Recipe.query.filter(models.Recipe.id == recipe_id).one()
+    print(recipe)
     return recipe_schema.dump(recipe).data
 
 
@@ -124,3 +127,100 @@ def get_menu_recipes(menu_id):
         .join(models.MenuRecipe) \
         .filter(models.MenuRecipe.menu_id == menu_id).all()
     return client_recipes_schema.dump(recipes).data
+
+
+def create_client(name, nickname, email, home, mobile=None, work=None):
+    client = models.Client()
+    client.name = name
+    client.nickname = nickname
+    client.email = email
+    client.home_phone = home
+    client.work_phone = work
+    client.mobile_phone = mobile
+
+    db.session.add(client)
+    db.session.commit()
+
+    client_schema = models.ClientSchema()
+    client_tuple = collections.namedtuple('ClientData', ['id', 'data'])
+    result = client_tuple(id=client.id, data=client_schema.dump(client).data)
+
+    return result
+
+
+def create_client_recipe(client_id, recipe_name, description=None, style=None, type=None):
+    client = models.Client.query.filter(models.Client.id == client_id).one()
+    recipe = models.Recipe()
+    recipe.name = recipe_name
+    recipe.description = description
+    recipe.style = style
+    recipe.type = type
+    client.add_recipe(recipe)
+
+    db.session.commit()
+
+    recipe_schema = models.RecipeSchema()
+    recipe_tuple = collections.namedtuple('RecipeData', ['id', 'data'])
+    result = recipe_tuple(id=recipe.id, data=recipe_schema.dump(recipe).data)
+    return result
+
+
+def edit_recipe(recipe_id, recipe_name, description=None, style=None, type=None):
+    recipe = models.Recipe.query.filter(models.Recipe.id == recipe_id).one()
+    recipe.name = recipe_name or recipe.name
+    recipe.description = description or recipe.description
+    recipe.style = style or recipe.style
+    recipe.type = type or recipe.type
+
+    db.session.commit()
+
+    recipe_schema = models.RecipeSchema()
+    recipe_tuple = collections.namedtuple('RecipeData', ['id', 'data'])
+    result = recipe_tuple(id=recipe.id, data=recipe_schema.dump(recipe).data)
+    return result
+
+
+def edit_ingredient(id, name=None, description=None, is_allergen=None, type=None):
+    ingredient = models.Ingredient.query.filter(models.Ingredient.id == id).one()
+    ingredient.name = name or ingredient.name
+    ingredient.description = description or ingredient.description
+    ingredient.is_allergen = is_allergen or ingredient.is_allergen
+    ingredient.type = type or ingredient.type
+
+    db.session.commit()
+
+    ingredient_schema = models.IngredientSchema()
+    ingredient_tuple = collections.namedtuple('IngredientData', ['id', 'data'])
+    result = ingredient_tuple(id=ingredient.id, data=ingredient_schema.dump(ingredient).data)
+    return result
+
+
+def create_step(recipe_id, order_no, instructions):
+    recipe = models.Recipe.query.filter(models.Recipe.id == recipe_id).one()
+    step = models.Step()
+    step.recipe_id = recipe_id
+    step.order_no = order_no
+    step.instructions = instructions
+    recipe.add_step(step)
+
+    db.session.commit()
+
+    step_schema = models.StepSchema()
+    step_tuple = collections.namedtuple('StepData', ['id', 'data'])
+    result = step_tuple(id=step.id, data=step_schema.dump(step).data)
+    return result
+
+
+def create_recipe(name, description=None, style=None, type=None):
+    recipe = models.Recipe()
+    recipe.name = name or None
+    recipe.description = description or None
+    recipe.style = style or None
+    recipe.type = type or None
+    db.session.add(recipe)
+    db.session.commit()
+
+    recipe_schema = models.RecipeSchema()
+    recipe_tuple = collections.namedtuple('RecipeData', ['id', 'data'])
+    result = recipe_tuple(id=recipe.id, data=recipe_schema.dump(recipe).data)
+    return result

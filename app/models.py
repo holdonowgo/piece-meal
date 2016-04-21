@@ -5,7 +5,7 @@ from flask import jsonify
 from flask_login import UserMixin
 from datetime import datetime
 
-from marshmallow import fields
+from marshmallow import fields, post_load
 from werkzeug.security import check_password_hash, generate_password_hash
 import sys
 
@@ -317,6 +317,8 @@ class Recipe(db.Model):
     #      join(Branch.salesmanagers).\
     #      filter(SalesManager.id == 1).all()
 
+    # ingredients = db.relationship('Ingredient', backref='recipe', lazy='dynamic')
+
     @property
     def ingredientsV2(self):
         return Ingredient.query. \
@@ -366,12 +368,12 @@ class Recipe(db.Model):
 
     def __repr__(self):
         s = self.name
-        if self.ingredients:  # s.count() > 0
-            s += '\n\n----------------------------------'
-            for i in self.ingredients:
-                s += '\n{0}'.format(i)
-        s += '\n----------------------------------'
-        s += '\n'
+        # if self.ingredients:  # s.count() > 0
+        #     s += '\n\n----------------------------------'
+        #     for i in self.ingredients:
+        #         s += '\n{0}'.format(i)
+        # s += '\n----------------------------------'
+        # s += '\n'
         return s
 
     @staticmethod
@@ -742,8 +744,8 @@ class StepSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_step', recipe_id='<recipe_id>', step_id='<id>'),
-        'collection': ma.URLFor('_get_steps', recipe_id='<recipe_id>')
+        'self': ma.URLFor('recipe_step', recipe_id='<recipe_id>', step_id='<id>'),
+        'collection': ma.URLFor('recipe_step', recipe_id='<recipe_id>')
     })
 
 
@@ -779,7 +781,7 @@ class RecipeSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_recipe', id='<id>'),
+        'self': ma.URLFor('_get_recipe', recipe_id='<id>'),
         'collection': ma.URLFor('_get_recipes')
     })
 
@@ -809,6 +811,10 @@ class ClientSchema(ma.ModelSchema):
         'self': ma.URLFor('_get_client', client_id='<id>'),
         'collection': ma.URLFor('_get_clients')
     })
+
+    @post_load
+    def make_client(self, data):
+        return Client(**data)
 
 
 class MenuSchema(ma.ModelSchema):
