@@ -19,7 +19,7 @@ from flask_swagger import swagger
 @app.route('/index')
 def index():
     # client = {'name': 'Randall'}  # fake user
-    client = Client.query.filter_by(id=1).first()
+    client = models.Client.query.filter_by(id=1).first()
     # allergens = [  # fake array of allergens
     #     {
     #         'client': {'name': 'Randall'},
@@ -43,7 +43,7 @@ def login():
     # return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.get_by_username(form.username.data)
+        user = models.User.get_by_username(form.username.data)
         if user is not None and user.check_password(form.password.data):
             session['remember_me'] = form.remember_me.data
             login_user(user, form.remember_me.data)
@@ -63,9 +63,9 @@ def logout():
 def signup():
     form = SignUpForm()
     if form.validate_on_submit():
-        user = User(email=form.email.data,
-                    username=form.username.data,
-                    password=form.password.data)
+        user = models.User(email=form.email.data,
+                           username=form.username.data,
+                           password=form.password.data)
         db.session.add(user)
         db.session.commit()
         flash('Welcome, {}!  Please Login'.format(user.username))
@@ -75,7 +75,7 @@ def signup():
 
 @login_manager.user_loader
 def load_user(id):
-    return User.query.get(int(id))
+    return models.User.query.get(int(id))
 
 
 @app.route('/authorize/<provider>')
@@ -98,7 +98,7 @@ def oauth_callback(provider):
         flash('Authentication failed.')
         return redirect(url_for('index'))
     # Look if the user already exists
-    user = User.query.filter_by(email=email).first()
+    user = models.User.query.filter_by(email=email).first()
     if not user:
         # Create the user. Try and use their name returned by Google,
         # but if it is not set, split the email address at the @.
@@ -108,7 +108,7 @@ def oauth_callback(provider):
 
         # We can do more work here to ensure a unique nickname, if you
         # require that.
-        user = User(nickname=nickname, email=email)
+        user = models.User(nickname=nickname, email=email)
         db.session.add(user)
         db.session.commit()
     # Log in the user, by default remembering them for their next visit
@@ -119,7 +119,7 @@ def oauth_callback(provider):
 
 @app.route('/recipe/book')
 def recipe_book(page=1):
-    recipes = Recipe.get_catalogue().paginate(page, POSTS_PER_PAGE, False)
+    recipes = models.Recipe.get_catalogue().paginate(page, POSTS_PER_PAGE, False)
     return render_template('recipe_book.html',
                            recipes=recipes)
 
@@ -128,7 +128,7 @@ def recipe_book(page=1):
 @app.route('/recipe/<int:_id>')
 @login_required
 def recipe(_id, page=1):
-    r = Recipe.query.filter_by(id=_id).first()
+    r = models.Recipe.query.filter_by(id=_id).first()
     if r is None:
         # flash('Recipe %s not found.' % r.name)
         flash('Recipe not found.')
@@ -143,14 +143,14 @@ def recipe(_id, page=1):
 
 @app.route('/recipe/<int:recipe_id>/step/<int:step_id>')
 def step(recipe_id, step_id):
-    s = Step.query.filter_by(recipe_id=recipe_id, id=step_id).first()
+    s = models.Step.query.filter_by(recipe_id=recipe_id, id=step_id).first()
     return render_template('step.html', step=s)
 
 
 @app.route('/recipe/<int:recipe_id>/step/<int:step_id>/edit')
 @login_required
 def edit_step(recipe_id, step_id):
-    s = Step.query.filter_by(recipe_id=recipe_id, id=step_id).first()
+    s = models.Step.query.filter_by(recipe_id=recipe_id, id=step_id).first()
     form = EditStepForm()
     if s is None:
         # flash('Recipe %s not found.' % r.name)
@@ -169,21 +169,21 @@ def edit_step(recipe_id, step_id):
     form.instructions.data = s.instructions
     # form.ingredients.data = s.ingredientsV2.all()
     ingredients = s.ingredientsV2.all()
-    ingredients_all = Ingredient.all()
+    ingredients_all = models.Ingredient.all()
     return render_template('edit_step.html', step=s, form=form, ingredients=ingredients,
                            ingredients_all=ingredients_all)
 
 
 @app.route('/ingredient/<int:_id>')
 def ingredient(_id):
-    i = Ingredient.query.get(_id)
+    i = models.Ingredient.query.get(_id)
     return render_template('ingredient.html', ingredient=i)
 
 
 @app.route('/ingredient/<int:_id>/edit', methods=['GET', 'POST'])
 # @login_required
 def edit_ingredient(_id):
-    i = Ingredient.query.get(_id)
+    i = models.Ingredient.query.get(_id)
     form = IngredientEditForm()
     if i is None:
         # flash('Recipe %s not found.' % r.name)
@@ -207,7 +207,7 @@ def edit_ingredient(_id):
 @app.route('/client/<int:_id>/edit', methods=['GET', 'POST'])
 # @login_required
 def edit_client(_id):
-    c = Client.query.get(_id)
+    c = models.Client.query.get(_id)
     form = EditClientForm()
     if form.validate_on_submit():
         c.name = form.name.data
@@ -243,7 +243,7 @@ def autocomplete():
 
 @app.context_processor
 def inject_ingredients():
-    return dict(all_ingredients=Ingredient.all)
+    return dict(all_ingredients=models.Ingredient.all)
 
 
 @app.route("/spec")
@@ -520,7 +520,57 @@ def _get_recipes():
         return resp
 
 
-@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>', methods=['GET', 'PUT'])
+@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>', methods=['GET', 'PUT', 'DELETE'])
+def _get_recipe(recipe_id):
+    if request.method == 'GET':
+        try:
+            recipe = logic.get_recipe(recipe_id=recipe_id)
+        except NoResultFound:
+            abort(404)
+
+        resp = jsonify({'recipe': recipe.data})
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/recipes/{0}'.format(recipe.id)
+        resp.autocorrect_location_header = False
+
+        return resp
+
+    elif request.method == 'PUT':
+        recipe_name = request.form['recipe_name']
+        description = request.form['description']
+        style = request.form['style']
+        type = request.form['type']
+        result = logic.edit_recipe(recipe_id=recipe_id,
+                                   recipe_name=recipe_name,
+                                   description=description,
+                                   style=style,
+                                   type=type)
+
+        resp = jsonify({'recipe': result.data})
+        resp.status_code = 201
+        resp.headers['Location'] = '/cah/api/v1.0/recipes/{0}'.format(result.id)
+        resp.autocorrect_location_header = False
+
+        # Get the parsed contents of the form data
+        json = request.json
+        print(json)
+        # Render template
+
+        return resp
+
+    elif request.method == 'POST':
+        recipe_id = request.form['recipe_id']
+        logic.delete_recipe(recipe_id)
+
+        resp = Response()
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/recipes'
+        resp.autocorrect_location_header = False
+
+        return resp
+
+
+@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>/steps', methods=['GET', 'POST'])
 def _get_step(recipe_id, step_id):
     if request.method == 'GET':
         try:
@@ -554,42 +604,12 @@ def _get_step(recipe_id, step_id):
 
         return resp
 
-
-@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>/steps', methods=['GET', 'POST'])
-def _get_recipe(recipe_id):
-    if request.method == 'GET':
-        try:
-            recipe = logic.get_recipe(recipe_id=recipe_id)
-        except NoResultFound:
-            abort(404)
-        return jsonify({'recipe': recipe})
-
     elif request.method == 'PUT':
-        recipe_name = request.form['recipe_name']
-        description = request.form['description']
-        style = request.form['style']
-        type = request.form['type']
-        result = logic.edit_recipe(recipe_id=recipe_id,
-                                   recipe_name=recipe_name,
-                                   description=description,
-                                   style=style,
-                                   type=type)
-
-        resp = jsonify({'recipe': result.data})
-        resp.status_code = 200
-        resp.headers['Location'] = '/cah/api/v1.0/recipes/{0}'.format(result.id)
-        resp.autocorrect_location_header = False
-
-        # Get the parsed contents of the form data
-        json = request.json
-        print(json)
-        # Render template
-
-        return resp
+        logic.delete_recipe(recipe_id)
 
 
-@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>/steps/<int:step_id>', methods=['GET'])
-def recipe_step(recipe_id):
+@app.route('/piece-meal/api/v1.0/recipes/<int:recipe_id>/steps/<int:step_id>', methods=['GET', 'PUT', 'DELETE'])
+def recipe_step(recipe_id, step_id):
     if request.method == 'GET':
         try:
             steps = logic.get_steps(recipe_id=recipe_id)
@@ -597,13 +617,14 @@ def recipe_step(recipe_id):
             abort(404)
         return jsonify({'steps': steps})
 
-    elif request.method == 'POST':
+    elif request.method == 'PUT':
         recipe_id = request.form['recipe_id']
         order_no = request.form['order_no']
         instructions = request.form['instructions']
-        result = logic.create_step(recipe_id=recipe_id,
-                                   order_no=order_no,
-                                   instructions=instructions)
+        result = logic.edit_step(step_id=step_id,
+                                 recipe_id=recipe_id,
+                                 order_no=order_no,
+                                 instructions=instructions)
 
         resp = jsonify({'step': result.data})
         resp.status_code = 200
@@ -611,6 +632,16 @@ def recipe_step(recipe_id):
         resp.autocorrect_location_header = False
 
         return resp
+
+    elif request.method == 'DELETE':
+        logic.delete_step(step_id)
+
+        resp = Response()
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/recipes/{0}/steps'
+        resp.autocorrect_location_header = False
+
+        return  resp
 
 
 @app.route('/piece-meal/api/v1.0/menus/<int:menu_id>/recipes/<int:recipe_id>', methods=['GET'])

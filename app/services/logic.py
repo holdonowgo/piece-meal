@@ -224,3 +224,24 @@ def create_recipe(name, description=None, style=None, type=None):
     recipe_tuple = collections.namedtuple('RecipeData', ['id', 'data'])
     result = recipe_tuple(id=recipe.id, data=recipe_schema.dump(recipe).data)
     return result
+
+
+def edit_step(step_id, recipe_id, order_no, instructions):
+    step = models.Step.query.filter(models.Step.id == step_id, models.Step.recipe_id == recipe_id).one()
+    step.recipe_id = recipe_id
+    step.order_no = order_no
+    step.instructions = instructions
+
+    db.session.commit()
+
+    step_schema = models.StepSchema()
+    step_tuple = collections.namedtuple('StepData', ['id', 'data'])
+
+    result = step_tuple(id=step.id, data=step_schema.dump(step).data)
+    return result
+
+
+def delete_recipe(recipe_id):
+    recipe = models.Recipe.query.filter(models.Recipe.id==recipe_id).one()
+    db,session.delete(recipe)
+    db.session.commit()
