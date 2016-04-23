@@ -820,7 +820,12 @@ class ClientSchema(ma.ModelSchema):
 class MenuSchema(ma.ModelSchema):
     class Meta:
         model = Menu
-        # fields = ("id", "recipe_id", "instructions")
+        # fields = ("end_date",)
+
+    # end_date = fields.Method("formate_date", dump_only=True)
+
+    def formate_date(self, menu):
+        return menu.end_time
 
     clients = ma.Nested(ClientSchema, many=True, exclude=('menu',), dump_only=True, )
 

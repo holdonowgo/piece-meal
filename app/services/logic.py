@@ -1,5 +1,7 @@
 import collections
 
+from datetime import datetime
+
 from flask import render_template, flash, redirect, session, url_for, request, g, Response, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, oid
@@ -180,10 +182,11 @@ def edit_recipe(recipe_id, recipe_name, description=None, style=None, type=None)
     return result
 
 
-def edit_ingredient(id, name=None, description=None, is_allergen=None, type=None):
+def edit_ingredient(id, name=None, description=None, nutrition=None, is_allergen=None, type=None):
     ingredient = models.Ingredient.query.filter(models.Ingredient.id == id).one()
     ingredient.name = name or ingredient.name
     ingredient.description = description or ingredient.description
+    ingredient.nutrition = description or ingredient.nutrition
     ingredient.is_allergen = is_allergen or ingredient.is_allergen
     ingredient.type = type or ingredient.type
 
@@ -242,6 +245,75 @@ def edit_step(step_id, recipe_id, order_no, instructions):
 
 
 def delete_recipe(recipe_id):
-    recipe = models.Recipe.query.filter(models.Recipe.id==recipe_id).one()
-    db,session.delete(recipe)
+    recipe = models.Recipe.query.filter(models.Recipe.id == recipe_id).one()
+    db.session.delete(recipe)
+    db.session.commit()
+
+
+def delete_step(step_id):
+    step = models.Step.query.filter(models.Step.id == step_id).one()
+    db.session.delete(step)
+    db.session.commit()
+
+
+def create_ingredient(name, description=None, nutrition=None, is_allergen=None, type=None):
+    ingredient = models.Ingredient()
+    ingredient.name = name or ingredient.name
+    ingredient.description = description or ingredient.description
+    ingredient.nutrition = nutrition or ingredient.nutrition
+    ingredient.is_allergen = is_allergen or ingredient.is_allergen
+    ingredient.type = type or ingredient.type
+
+    db.session.add(ingredient)
+    db.session.commit()
+
+    ingredient_schema = models.IngredientSchema()
+    ingredient_tuple = collections.namedtuple('IngredientData', ['id', 'data'])
+    result = ingredient_tuple(id=ingredient.id, data=ingredient_schema.dump(ingredient).data)
+    return result
+
+
+def edit_menu(id, start_date, description, end_date):
+    menu = models.Menu.query.filter(models.Menu.id == id).one()
+    menu.description = description or None
+    menu.start_date = datetime.strptime(start_date, '%d/%m/%Y') or None
+    menu.end_date = datetime.strptime(end_date, '%d/%m/%Y') or None
+
+    db.session.commit()
+
+    menu_schema = models.MenuSchema()
+    menu_tuple = collections.namedtuple('MenuData', ['id', 'data'])
+    result = menu_tuple(id=menu.id, data=menu_schema.dump(menu).data)
+    return result
+
+
+def create_menu(start_date, description, end_date):
+    menu = models.Menu()
+    menu.description = description or None
+    menu.start_date = datetime.strptime(start_date, '%d/%m/%Y')
+    menu.end_date = datetime.strptime(end_date, '%d/%m/%Y')
+    db.session.add(menu)
+    db.session.commit()
+
+    menu_schema = models.MenuSchema()
+    menu_tuple = collections.namedtuple('MenuData', ['id', 'data'])
+    result = menu_tuple(id=menu.id, data=menu_schema.dump(menu).data)
+    return result
+
+
+def delete_menu(menu_id):
+    menu = models.Menu.query.filter(models.Menu.id == menu_id).one()
+    db.session.delete(menu)
+    db.session.commit()
+
+
+def delete_ingredient(ingredient_id):
+    ingredient = models.Ingredient.query.filter(models.Ingredient.id == ingredient_id).one()
+    db.session.delete(ingredient)
+    db.session.commit()
+
+
+def delete_client(client_id):
+    client = models.Client.query.filter(models.Client.id == client_id).one()
+    db.session.delete(client)
     db.session.commit()

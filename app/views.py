@@ -291,7 +291,7 @@ def _get_user_by_username(user_name):
     return jsonify({'users': users})
 
 
-@app.route('/piece-meal/api/v1.0/ingredients/<int:id>', methods=['GET', 'PUT'])
+@app.route('/piece-meal/api/v1.0/ingredients/<int:id>', methods=['GET', 'PUT', 'DELETE'])
 def _get_ingredient(id):
     if request.method == 'GET':
         try:
@@ -326,71 +326,128 @@ def _get_ingredient(id):
 
         return resp
 
+    elif request.method == 'DELETE':
+        logic.delete_ingredient(ingredient_id=id)
 
-@app.route('/piece-meal/api/v1.0/ingredients', methods=['GET'])
-def _get_ingredients():
-    try:
-        ingredients = logic.get_ingredients()
-    except NoResultFound:
-        abort(404)
-    return jsonify({'ingredients': ingredients})
-
-
-@app.route('/piece-meal/api/v1.0/menus/<int:menu_id>', methods=['GET'])
-def _get_menu(menu_id):
-    try:
-        menu = logic.get_menu(menu_id=menu_id)
-    except NoResultFound:
-        abort(404)
-    return jsonify({'menu': menu})
-
-
-@app.route('/piece-meal/api/v1.0/menus', methods=['GET'])
-def _get_menus():
-    try:
-        menus = logic.get_menus()
-    except NoResultFound:
-        abort(404)
-    return jsonify({'menus': menus})
-
-
-@app.route('/piece-meal/api/v1.0/clients', methods=['GET', 'POST'])
-def _create_client():
-    if request.method == 'GET':
-        try:
-            clients = logic.get_clients()
-        except NoResultFound:
-            abort(404)
-
-        resp = jsonify({'clients': clients})
-        resp.headers['Location'] = 'localhost:5000/piece-meal/api/v1.0/clients'
+        resp = Response()
         resp.status_code = 200
-
-    elif request.method == 'POST':
-        client = models.Client()
-        name = request.form['name']
-        nickname = request.form['nickname']
-        email = request.form['email']
-        home = request.form['home']
-        mobile = request.form['mobile']
-        work = request.form['work']
-
-        result = logic.create_client(name=name,
-                                     nickname=nickname,
-                                     email=email,
-                                     home=home,
-                                     mobile=mobile,
-                                     work=work)
-
-        resp = jsonify({'client': result.data})
-        resp.status_code = 200
-        resp.headers['Location'] = '/cah/api/v1.0/clients/{0}'.format(result.id)
+        resp.headers['Location'] = '/cah/api/v1.0/ingredients'
         resp.autocorrect_location_header = False
 
         return resp
 
 
-@app.route('/piece-meal/api/v1.0/clients/<int:client_id>', methods=['GET', 'PUT'])
+@app.route('/piece-meal/api/v1.0/ingredients', methods=['GET', 'POST'])
+def _get_ingredients():
+    if request.method == 'GET':
+        try:
+            ingredients = logic.get_ingredients()
+        except NoResultFound:
+            abort(404)
+        return jsonify({'ingredients': ingredients})
+
+    elif request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        nutrition = request.form['nutrition']
+        is_allergen = request.form['is_allergen']
+        type = request.form['type']
+        result = logic.create_ingredient(name=name,
+                                         description=description,
+                                         nutrition=nutrition,
+                                         is_allergen=is_allergen,
+                                         type=type)
+
+        resp = jsonify({'ingredient': result.data})
+        resp.status_code = 201
+        resp.headers['Location'] = '/cah/api/v1.0/ingredients/{0}'.format(result.id)
+        resp.autocorrect_location_header = False
+
+        # Get the parsed contents of the form data
+        json = request.json
+        print(json)
+        # # Render template
+        # return jsonify(json)
+
+        return resp
+
+
+@app.route('/piece-meal/api/v1.0/menus/<int:menu_id>', methods=['GET', 'PUT', 'DELETE'])
+def _get_menu(menu_id):
+    if request.method == 'GET':
+        try:
+            menu = logic.get_menu(menu_id=menu_id)
+        except NoResultFound:
+            abort(404)
+        return jsonify({'menu': menu})
+
+    elif request.method == 'PUT':
+        id = request.form['menu_id']
+        description = request.form['description']
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        result = logic.edit_menu(id=id,
+                                 start_date=start_date,
+                                 description=description,
+                                 end_date=end_date)
+
+        resp = jsonify({'ingredient': result.data})
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/ingredients/{0}'.format(result.id)
+        resp.autocorrect_location_header = False
+
+        # Get the parsed contents of the form data
+        json = request.json
+        print(json)
+        # # Render template
+        # return jsonify(json)
+
+        return resp
+
+    elif request.method == 'DELETE':
+        logic.delete_menu(menu_id=menu_id)
+
+        resp = Response()
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/menus'
+        resp.autocorrect_location_header = False
+
+        return resp
+
+
+@app.route('/piece-meal/api/v1.0/menus', methods=['GET', 'POST'])
+def _get_menus():
+    if request.method == 'GET':
+        try:
+            menus = logic.get_menus()
+        except NoResultFound:
+            abort(404)
+        return jsonify({'menus': menus})
+
+    elif request.method == 'POST':
+        description = request.form['description']
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        result = logic.create_menu(id=id,
+                                   start_date=start_date,
+                                   description=description,
+                                   end_date=end_date)
+
+        resp = jsonify({'ingredient': result.data})
+        resp.status_code = 201
+        resp.headers['Location'] = '/cah/api/v1.0/ingredients/{0}'.format(result.id)
+        resp.autocorrect_location_header = False
+
+        # Get the parsed contents of the form data
+        json = request.json
+        print(json)
+        # # Render template
+        # return jsonify(json)
+
+        return resp
+
+
+@app.route('/piece-meal/api/v1.0/clients/<int:client_id>', methods=['GET', 'PUT', 'DELETE'])
 def _get_client(client_id):
     if request.method == 'GET':
         try:
@@ -428,6 +485,52 @@ def _get_client(client_id):
         resp = jsonify({'client': result.data})
         resp.status_code = 200
         resp.headers['Location'] = '/cah/api/v1.0/client/{0}'.format(result.id)
+        resp.autocorrect_location_header = False
+
+        return resp
+
+    elif request.method == 'DELETE':
+        logic.delete_client(client_id=client_id)
+
+        resp = Response()
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/clients'
+        resp.autocorrect_location_header = False
+
+        return resp
+
+
+@app.route('/piece-meal/api/v1.0/clients', methods=['GET', 'POST'])
+def _create_client():
+    if request.method == 'GET':
+        try:
+            clients = logic.get_clients()
+        except NoResultFound:
+            abort(404)
+
+        resp = jsonify({'clients': clients})
+        resp.headers['Location'] = 'localhost:5000/piece-meal/api/v1.0/clients'
+        resp.status_code = 200
+
+    elif request.method == 'POST':
+        client = models.Client()
+        name = request.form['name']
+        nickname = request.form['nickname']
+        email = request.form['email']
+        home = request.form['home']
+        mobile = request.form['mobile']
+        work = request.form['work']
+
+        result = logic.create_client(name=name,
+                                     nickname=nickname,
+                                     email=email,
+                                     home=home,
+                                     mobile=mobile,
+                                     work=work)
+
+        resp = jsonify({'client': result.data})
+        resp.status_code = 200
+        resp.headers['Location'] = '/cah/api/v1.0/clients/{0}'.format(result.id)
         resp.autocorrect_location_header = False
 
         return resp
@@ -641,7 +744,7 @@ def recipe_step(recipe_id, step_id):
         resp.headers['Location'] = '/cah/api/v1.0/recipes/{0}/steps'
         resp.autocorrect_location_header = False
 
-        return  resp
+        return resp
 
 
 @app.route('/piece-meal/api/v1.0/menus/<int:menu_id>/recipes/<int:recipe_id>', methods=['GET'])
