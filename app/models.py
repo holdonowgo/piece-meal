@@ -7,6 +7,7 @@ from datetime import datetime
 
 from marshmallow import fields, post_load
 from werkzeug.security import check_password_hash, generate_password_hash
+from passlib.apps import custom_app_context as pwd_context
 import sys
 
 from flask_sqlalchemy import SQLAlchemy
@@ -29,6 +30,12 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String)
+
+    def hash_password(self, password):
+        self.password_hash = pwd_context.encrypt(password)
+
+    def verify_password(self, password):
+        return pwd_context.verify(password, self.password_hash)
 
     @property
     def password(self):
@@ -77,8 +84,8 @@ class UserSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        # 'self': ma.URLFor('_get_user', user_name='<username>'),
-        'collection': ma.URLFor('_get_users')
+        # 'self': ma.URLFor('api._get_user', user_name='<username>'),
+        'collection': ma.URLFor('api._get_users')
     })
 
 
@@ -678,6 +685,11 @@ class OrderItem(db.Model):
         return self.quantity * self.each_cost
 
 
+class IngredientAlternativeSchema(ma.ModelSchema):
+    class Meta:
+        model = IngredientAlternative
+
+
 class AllergenAlternativeSchema(ma.ModelSchema):
     class Meta:
         model = AllergenAlternative
@@ -686,8 +698,8 @@ class AllergenAlternativeSchema(ma.ModelSchema):
 
         # # Smart hyperlinking
         # _links = ma.Hyperlinks({
-        #     'self': ma.URLFor('_get_allergen_alternative', step_id='<step_id>', ingredient_id='<ingredient_id>'),
-        #     'collection': ma.URLFor('_get_allergen_alternatives')
+        #     'self': ma.URLFor('api._get_allergen_alternative', step_id='<step_id>', ingredient_id='<ingredient_id>'),
+        #     'collection': ma.URLFor('api._get_allergen_alternatives')
         # })
 
 
@@ -702,8 +714,8 @@ class IngredientSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_ingredient', id='<id>'),
-        'collection': ma.URLFor('_get_ingredients')
+        'self': ma.URLFor('api._get_ingredient', id='<id>'),
+        'collection': ma.URLFor('api._get_ingredients')
     })
 
 
@@ -716,8 +728,8 @@ class StepSubRecipeSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_step_sub_recipe', step_id='<step_id>', recipe_id='<recipe_id>'),
-        'collection': ma.URLFor('_get_step_sub_recipes')
+        'self': ma.URLFor('api._get_step_sub_recipe', step_id='<step_id>', recipe_id='<recipe_id>'),
+        'collection': ma.URLFor('api._get_step_sub_recipes')
     })
 
 
@@ -730,8 +742,8 @@ class StepIngredientSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_step_ingredient', step_id='<step_id>', recipe_id='<recipe_id>'),
-        # 'collection': ma.URLFor('_get_step_ingredients')
+        'self': ma.URLFor('api._get_step_ingredient', step_id='<step_id>', recipe_id='<recipe_id>'),
+        # 'collection': ma.URLFor('api._get_step_ingredients')
     })
 
 
@@ -744,8 +756,8 @@ class StepSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('recipe_step', recipe_id='<recipe_id>', step_id='<id>'),
-        'collection': ma.URLFor('recipe_step', recipe_id='<recipe_id>')
+        'self': ma.URLFor('api.recipe_step', recipe_id='<recipe_id>', step_id='<id>'),
+        'collection': ma.URLFor('api.recipe_step', recipe_id='<recipe_id>')
     })
 
 
@@ -781,8 +793,8 @@ class RecipeSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_recipe', recipe_id='<id>'),
-        'collection': ma.URLFor('_get_recipes')
+        'self': ma.URLFor('api._get_recipe', recipe_id='<id>'),
+        'collection': ma.URLFor('api._get_recipes')
     })
 
 
@@ -808,8 +820,8 @@ class ClientSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_client', client_id='<id>'),
-        'collection': ma.URLFor('_get_clients')
+        'self': ma.URLFor('api._get_client', client_id='<id>'),
+        'collection': ma.URLFor('api._get_clients')
     })
 
     @post_load
@@ -833,8 +845,8 @@ class MenuSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('_get_menu', menu_id='<id>'),
-        'collection': ma.URLFor('_get_menus')
+        'self': ma.URLFor('api._get_menu', menu_id='<id>'),
+        'collection': ma.URLFor('api._get_menus')
     })
 
 
