@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ToDo API Client Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+</head>
+<body>
+<div class="navbar">
+    <div class="navbar-inner">
+        <a class="brand" href="#">ToDo API Client Demo</a>
+    </div>
+</div>
+<div id="main" class="container">
+
+    <table class="table table-striped">
+        <tr>
+            <td style="width: 1px;"></td>
+            <td><b>Ingredient</b></td>
+            <td><b>Options</b></td>
+        </tr>
+        <!-- ko foreach: ingredients -->
+        <tr>
+            <td>
+                <span data-bind="visible: is_allergen" class="label label-success">Is Allergen</span>
+                <span data-bind="visible: !is_allergen()" class="label label-important">Not Allergen</span>
+            </td>
+            <td><p><b data-bind="text: name"></b></p>
+                <p data-bind="text: description"></p>
+                <p data-bind="text: uri"></p></td>
+            <td>
+                <button data-bind="click: $parent.beginEdit" class="btn">Edit</button>
+                <button data-bind="click: $parent.remove" class="btn">Delete</button>
+            <span data-bind="visible: is_allergen">
+                <button data-bind="click: $parent.markInProgress" class="btn">Mark As Allergen</button>
+            </span>
+            <span data-bind="visible: !is_allergen()">
+                <button data-bind="click: $parent.markDone" class="btn">Mark Done</button>
+            </span>
+            </td>
+        </tr>
+        <!-- /ko -->
+    </table>
+    <button data-bind="click: beginAdd" class="btn">Add Ingredient</button>
+
+</div>
+
+
+<div id="add" class="modal hide fade" tabindex="=1" role="dialog" aria-labelledby="addDialogLabel"
+     aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="addDialogLabel">Add Ingredient</h3>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="control-group">
+                <label class="control-label" for="inputTask">Ingredient</label>
+                <div class="controls">
+                    <input data-bind="value: name" type="text" id="inputTask" placeholder="Ingredient title"
+                           style="width: 150px;">
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="inputDescription">Description</label>
+                <div class="controls">
+                    <input data-bind="value: description" type="text" id="inputDescription"
+                           placeholder="Description" style="width: 300px;">
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button data-bind="click: addIngredient" class="btn btn-primary">Add Ingredient</button>
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function TasksViewModel() {
+        var self = this;
+        self.tasksURI = 'http://localhost:5000/piece-meal/api/v1.0/ingredients';
+        self.username = "miguel";
+        self.password = "python";
+        self.ingredients = ko.observableArray();
+
+        self.ajax = function (uri, method, data) {
+            var request = {
+                url: uri,
+                type: method,
+                contentType: "application/json",
+                accepts: "application/json",
+                cache: false,
+                dataType: 'json',
+                data: JSON.stringify(data),
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("Authorization",
+                            "Basic " + btoa(self.username + ":" + self.password));
+                },
+                error: function (jqXHR) {
+                    console.log("ajax error " + jqXHR.status);
+                }
+            };
+            return $.ajax(request);
+        }
+
+        self.beginAdd = function () {
+            $('#add').modal('show');
+        }
+        self.beginEdit = function (ingredient) {
+            alert("Edit: " + ingredient.name());
+        }
+        self.remove = function (ingredient) {
+            alert("Remove: " + ingredient.name());
+        }
+        self.markInProgress = function (ingredient) {
+            ingredient.is_allergen(false);
+        }
+        self.markDone = function (ingredient) {
+            ingredient.is_allergen(true);
+        }
+
+        self.ajax(self.tasksURI, 'GET').done(function (data) {
+            for (var i = 0; i < data.ingredients.length; i++) {
+                self.ingredients.push({
+                    uri: ko.observable(data.ingredients[i].links),
+                    name: ko.observable(data.ingredients[i].name),
+                    description: ko.observable(data.ingredients[i].description),
+                    is_allergen: ko.observable(data.ingredients[i].is_allergen)
+                });
+            }
+        });
+
+        self.add = function (ingredient) {
+            self.ajax(self.tasksURI, 'POST', ingredient).done(function (data) {
+                self.ingredients.push({
+                    name: ko.observable(data.ingredient.name),
+                    description: ko.observable(data.ingredient.description),
+                    is_allergen: ko.observable(data.ingredient.is_allergen)
+                });
+            });
+        }
+    }
+    function AddTaskViewModel() {
+        var self = this;
+        self.name = ko.observable();
+        self.description = ko.observable();
+
+        self.addIngredient = function () {
+            $('#add').modal('hide');
+            tasksViewModel.add({
+                name: self.name(),
+                description: self.description(),
+                is_allergen: self.is_allergen()
+            });
+            self.name("");
+            self.description("");
+            self.is_allergen(false);
+        }
+    }
+
+    var tasksViewModel = new TasksViewModel();
+    var addTaskViewModel = new AddTaskViewModel();
+    ko.applyBindings(tasksViewModel, $('#main')[0]);
+    ko.applyBindings(addTaskViewModel, $('#add')[0]);
+
+</script>
+</body>
+</html>

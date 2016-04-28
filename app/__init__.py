@@ -14,7 +14,9 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 Bootstrap(app)
 from .views.api import api
+from .views.ui import ui
 app.register_blueprint(api, url_prefix='/piece-meal/api/v1.0')
+app.register_blueprint(ui)
 # sandboy = Sandboy(app, db, [models.User, models.Client, models.Menu, models.Recipe, models.Step, models.Ingredient])
 
 login_manager = LoginManager()
