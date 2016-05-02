@@ -710,13 +710,16 @@ class IngredientSchema(ma.ModelSchema):
         exclude = ('step_ingredient', 'client',)
 
     alternatives = ma.Nested('self', many=True,
-                             only=('_links', 'description', 'id', 'is_allergen', 'name', 'nutrition', 'timestamp'))
+                             only=('_links', 'description', 'id', 'is_allergen', 'name', 'nutrition', 'timestamp'),
+                             include=('uri'))
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
         'self': ma.URLFor('api._get_ingredient', id='<id>'),
         'collection': ma.URLFor('api._get_ingredients')
     })
+
+    uri = ma.URLFor('api._get_ingredient', id='<id>')
 
 
 class StepSubRecipeSchema(ma.ModelSchema):

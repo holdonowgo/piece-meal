@@ -76,11 +76,22 @@ def _get_ingredient(id):
         return jsonify({'ingredient': ingredient})
 
     elif request.method == 'PUT':
-        name = request.form['name']
-        description = request.form['description']
-        nutrition = request.form['nutrition']
-        is_allergen = request.form['is_allergen']
-        type = request.form['type']
+        # if len(task) == 0:
+        #     abort(404)
+        # if not request.json:
+        #     abort(400)
+        # if 'title' in request.json and type(request.json['title']) != unicode:
+        #     abort(400)
+        # if 'description' in request.json and type(request.json['description']) is not unicode:
+        #     abort(400)
+        # if 'done' in request.json and type(request.json['done']) is not bool:
+        #     abort(400)
+        name = request.json.get('name', None)
+        description = request.json.get('description', None)
+        nutrition = request.json.get('nutrition', None)
+        is_allergen = request.json.get('is_allergen', None)
+        print('allergen: ', request.json.get('is_allergen'))
+        type = request.json.get('type', None)
         result = services.edit_ingredient(id=id,
                                           name=name,
                                           description=description,
@@ -104,7 +115,7 @@ def _get_ingredient(id):
     elif request.method == 'DELETE':
         services.delete_ingredient(ingredient_id=id)
 
-        resp = Response()
+        resp = jsonify({'result': True})
         resp.status_code = 200
         resp.headers['Location'] = '/cah/api/v1.0/ingredients'
         resp.autocorrect_location_header = False
@@ -187,11 +198,19 @@ def _get_ingredients():
         return jsonify({'ingredients': ingredients})
 
     elif request.method == 'POST':
-        name = request.form['name']
-        description = request.form['description']
-        nutrition = request.form['nutrition']
-        is_allergen = request.form['is_allergen']
-        type = request.form['type']
+        if not request.json or not 'name' in request.json:
+            abort(400)
+        name = request.json['name']
+        description = request.json.get('description', '')
+        nutrition = request.json.get('nutrition')
+        is_allergen = request.json.get('is_allergen', 0)
+        type = request.json.get('type', '')
+
+        # name = request.form['name']
+        # description = request.form['description']
+        # nutrition = request.form['nutrition']
+        # is_allergen = request.form['is_allergen']
+        # type = request.form['type']
         result = services.create_ingredient(name=name,
                                             description=description,
                                             nutrition=nutrition,

@@ -184,8 +184,8 @@ def edit_ingredient(id, name=None, description=None, nutrition=None, is_allergen
     ingredient = models.Ingredient.query.filter(models.Ingredient.id == id).one()
     ingredient.name = name or ingredient.name
     ingredient.description = description or ingredient.description
-    ingredient.nutrition = description or ingredient.nutrition
-    ingredient.is_allergen = is_allergen or ingredient.is_allergen
+    ingredient.nutrition = nutrition or ingredient.nutrition
+    ingredient.is_allergen = is_allergen
     ingredient.type = type or ingredient.type
 
     db.session.commit()
