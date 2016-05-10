@@ -275,10 +275,10 @@ class AllergenAlternative(db.Model):
     )
 
     # id = db.Column(db.Integer, primary_key=True)
+    step_id = db.Column(db.Integer, primary_key=True)
+    ingredient_id = db.Column(db.Integer, primary_key=True)
     # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
     # ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
-    step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
-    ingredient_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.ingredient_id'), primary_key=True)
     alt_ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), primary_key=True)
     notes = db.Column(db.String(50))
 
