@@ -272,7 +272,7 @@ class AllergenAlternative(db.Model):
     #         ['step_id', 'ingredient_id'],
     #         ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
     #     ),
-    )
+    # )
 
     # id = db.Column(db.Integer, primary_key=True)
     # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
