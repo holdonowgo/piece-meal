@@ -15,11 +15,14 @@ from flask_marshmallow import Marshmallow
 from marshmallow_sqlalchemy import ModelSchema, field_for
 from flask_marshmallow.sqla import HyperlinkRelated
 
+from config import WHOOSH_ENABLED
+
 if sys.version_info >= (3, 0):
     enable_search = False
 else:
-    enable_search = True
-    import flask.ext.whooshalchemy as whooshalchemy
+    enable_search = WHOOSH_ENABLED
+    if enable_search:
+        import flask.ext.whooshalchemy as whooshalchemy
 
 
 # User (Resource Owner)
