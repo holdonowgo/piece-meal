@@ -267,11 +267,11 @@ class StepIngredient(db.Model):
 
 class AllergenAlternative(db.Model):
     __tablename__ = 'allergen_alternative'
-    __table_args__ = (
-        db.ForeignKeyConstraint(
-            ['step_id', 'ingredient_id'],
-            ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
-        ),
+    # __table_args__ = (
+    #     db.ForeignKeyConstraint(
+    #         ['step_id', 'ingredient_id'],
+    #         ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
+    #     ),
     )
 
     # id = db.Column(db.Integer, primary_key=True)
