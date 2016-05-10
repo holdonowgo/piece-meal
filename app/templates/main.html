@@ -90,7 +90,8 @@
                         <div class="control-group">
                             <label class="control-label" for="inputIngredient">Ingredient</label>
                             <div class="controls">
-                                <input data-bind="value: name" type="text" id="inputIngredient" placeholder="Ingredient name"
+                                <input data-bind="value: name" type="text" id="inputIngredient"
+                                       placeholder="Ingredient name"
                                        style="width: 150px;">
                             </div>
                         </div>
@@ -148,7 +149,8 @@
                         <div class="control-group">
                             <label class="control-label" for="inputIngredient">Ingredient</label>
                             <div class="controls">
-                                <input data-bind="value: name" type="text" id="inputIngredient" placeholder="Ingredient name"
+                                <input data-bind="value: name" type="text" id="inputIngredient"
+                                       placeholder="Ingredient name"
                                        style="width: 150px;">
                             </div>
                         </div>
@@ -254,13 +256,13 @@
             }
 
             self.markNotAllergen = function (ingredient) {
-                self.ajax(ingredient.uri(), 'PUT', { is_allergen: false }).done(function(res) {
+                self.ajax(ingredient.uri(), 'PUT', {is_allergen: false}).done(function (res) {
                     self.updateIngredient(ingredient, res.ingredient);
                 });
             }
 
             self.markAllergen = function (ingredient) {
-                self.ajax(ingredient.uri(), 'PUT', { is_allergen: true }).done(function(res) {
+                self.ajax(ingredient.uri(), 'PUT', {is_allergen: true}).done(function (res) {
                     self.updateIngredient(ingredient, res.ingredient);
                 });
             }
@@ -289,7 +291,7 @@
                         type: ko.observable(data.ingredient.type)
                     });
                 });
-            }
+            }xvm
         }
 
         function AddIngredientViewModel() {
@@ -312,7 +314,9 @@
                 ingredientsViewModel.add(data);
                 self.name("");
                 self.description("");
+                self.nutrition("");
                 self.is_allergen(false);
+                self.type();
             }
         }
 
