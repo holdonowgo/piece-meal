@@ -285,7 +285,7 @@ class AllergenAlternative(db.Model):
     # ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
     # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
 
-    orig_ingredient = db.relationship("StepIngredient", foreign_keys=[step_id, ingredient_id])
+    orig_ingredient = db.relationship("StepIngredient", foreign_keys=['step_ingredient.step_id', 'step_ingredient.ingredient_id'])
     alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
 
     # step_ingredient = db.relationship('StepIngredient', backref='alternatives', foreign_keys=[step_id, ingredient_id])
