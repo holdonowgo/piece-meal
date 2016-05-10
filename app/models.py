@@ -267,12 +267,12 @@ class StepIngredient(db.Model):
 
 class AllergenAlternative(db.Model):
     __tablename__ = 'allergen_alternative'
-    # __table_args__ = (
-    #     db.ForeignKeyConstraint(
-    #         ['step_id', 'ingredient_id'],
-    #         ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
-    #     ),
-    # )
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['step_id', 'ingredient_id'],
+            ['step_ingredient.step_id', 'step_ingredient.ingredient_id']
+        ),
+    )
 
     # id = db.Column(db.Integer, primary_key=True)
     # step_id = db.Column(db.Integer, db.ForeignKey('step_ingredient.step_id'), primary_key=True)
@@ -285,7 +285,9 @@ class AllergenAlternative(db.Model):
     # ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
     # alt_ingredient_id = db.Column(db.Integer, db.ForeignKey("address.id"))
 
-    orig_ingredient = db.relationship("StepIngredient", foreign_keys=['step_ingredient.step_id', 'step_ingredient.ingredient_id'])
+    # orig_ingredient = db.relationship("StepIngredient", foreign_keys=[step_id, ingredient_id])
+    orig_ingredient = db.relationship('StepIngredient',
+                                      primaryjoin="and_(AllergenAlternative.step_id==StepIngredient.step_id, AllergenAlternative.ingredient_id==StepIngredient.ingredient_id)")
     alt_ingredient = db.relationship("Ingredient", foreign_keys=[alt_ingredient_id])
 
     # step_ingredient = db.relationship('StepIngredient', backref='alternatives', foreign_keys=[step_id, ingredient_id])
