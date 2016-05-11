@@ -19,8 +19,8 @@ app.register_blueprint(api, url_prefix='/piece-meal/api/v1.0')
 app.register_blueprint(ui)
 # sandboy = Sandboy(app, db, [models.User, models.Client, models.Menu, models.Recipe, models.Step, models.Ingredient])
 
-from .momentjs import momentjs
-app.jinja_env.globals['momentjs'] = momentjs
+# from .momentjs import momentjs
+# app.jinja_env.globals['momentjs'] = momentjs
 
 login_manager = LoginManager()
 login_manager.session_protection = "strong"
@@ -45,6 +45,6 @@ if os.environ.get('HEROKU') is not None:
     app.logger.setLevel(logging.INFO)
     app.logger.info('piecemeal startup')
 
-app.jinja_env.globals['momentjs'] = momentjs
+# app.jinja_env.globals['momentjs'] = momentjs
 
 from app import views, models
