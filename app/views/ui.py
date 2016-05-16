@@ -16,5 +16,5 @@ ui = Blueprint(
 )
 
 @ui.route('/main')
-def search():
+def main():
     return render_template('main.html')

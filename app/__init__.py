@@ -16,7 +16,7 @@ Bootstrap(app)
 from .views.api import api
 from .views.ui import ui
 app.register_blueprint(api, url_prefix='/piece-meal/api/v1.0')
-app.register_blueprint(ui)
+app.register_blueprint(ui, url_prefix='/piece-meal/ui/v1.0')
 # sandboy = Sandboy(app, db, [models.User, models.Client, models.Menu, models.Recipe, models.Step, models.Ingredient])
 
 # from .momentjs import momentjs
