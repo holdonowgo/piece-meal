@@ -1,5 +1,5 @@
-from app import models
-from flask import request, Response, jsonify, abort
+from app import models, db
+from flask import request, Response, jsonify, abort, url_for, g, redirect
 from flask_swagger import swagger
 from os import abort
 from app.api import services
@@ -14,6 +14,34 @@ api = Blueprint(
     # template_folder='../templates',
     # static_folder='../static'
 )
+
+from flask.ext.httpauth import HTTPBasicAuth
+auth = HTTPBasicAuth()
+
+@api.route('/token')
+@auth.login_required
+def get_auth_token():
+    token = g.user.generate_auth_token()
+    return jsonify({ 'token': token.decode('ascii') })
+
+
+@auth.verify_password
+def verify_password(username_or_token, password):
+    # first try to authenticate by token
+    user = models.User.verify_auth_token(username_or_token)
+    if not user:
+        # try to authenticate with username/password
+        user = models.User.query.filter_by(username=username_or_token).first()
+        if not user or not user.verify_password(password):
+            return False
+    g.user = user
+    return True
+
+
+@api.route('/resource')
+@auth.login_required
+def get_resource():
+    return jsonify({ 'data': 'Hello, %s!' % g.user.username })
 
 
 @api.route('/search')
@@ -31,6 +59,7 @@ def spec():
 
 
 @api.route('/users', methods=['GET'])
+@auth.login_required
 def _get_users():
     try:
         users = services.get_users()
@@ -40,6 +69,7 @@ def _get_users():
 
 
 @api.route('/users/<int:id>', methods=['GET'])
+@auth.login_required
 def _get_user_by_id(id):
     try:
         users = services.get_user_by_id(_id=id)
@@ -49,6 +79,7 @@ def _get_user_by_id(id):
 
 
 @api.route('/users/<email>', methods=['GET'])
+@auth.login_required
 def _get_user_by_email(email):
     try:
         users = services.get_user_by_email(email=email)
@@ -58,6 +89,7 @@ def _get_user_by_email(email):
 
 
 @api.route('/users/<username>', methods=['GET'])
+@auth.login_required
 def _get_user_by_username(user_name):
     try:
         users = services.get_user_by_username(user_name=user_name)
@@ -66,7 +98,34 @@ def _get_user_by_username(user_name):
     return jsonify({'users': users})
 
 
+@api.route('/users', methods = ['POST'])
+@auth.login_required
+def new_user():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if username is None or password is None:
+        abort(400) # missing arguments
+    if models.User.query.filter_by(username = username).first() is not None:
+        abort(400) # existing user
+    user = models.User(username = username)
+    user.hash_password(password)
+    db.session.add(user)
+    db.session.commit()
+    # return jsonify({ 'username': user.username }), 201, {'Location': url_for('api._get_user_by_id', id = user.id, _external = True)}
+
+    resp = jsonify({'username': user.username})
+    resp.status_code = 201
+    # resp.headers['Location'] = '/cah/api/v1.0/users/{0}'.format(user.id)
+    resp.headers['Location'] = url_for('api._get_user_by_id', id = user.id, _external = True)
+    resp.autocorrect_location_header = False
+
+    json = request.json
+
+    return resp
+
+
 @api.route('/ingredients/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+@auth.login_required
 def _get_ingredient(id):
     if request.method == 'GET':
         try:
@@ -90,7 +149,6 @@ def _get_ingredient(id):
         description = request.json.get('description', None)
         nutrition = request.json.get('nutrition', None)
         is_allergen = request.json.get('is_allergen', None)
-        print('allergen: ', request.json.get('is_allergen'))
         type = request.json.get('type', None)
         result = services.edit_ingredient(id=id,
                                           name=name,
@@ -106,7 +164,6 @@ def _get_ingredient(id):
 
         # Get the parsed contents of the form data
         json = request.json
-        print(json)
         # # Render template
         # return jsonify(json)
 
@@ -124,6 +181,7 @@ def _get_ingredient(id):
 
 
 @api.route('/ingredients/<int:id>/alternatives', methods=['GET', 'PUT'])
+@auth.login_required
 def _get_alt_ingredients(id):
     if request.method == 'GET':
         try:
@@ -143,7 +201,6 @@ def _get_alt_ingredients(id):
 
         # Get the parsed contents of the form data
         json = request.json
-        print(json)
         # # Render template
         # return jsonify(json)
 
@@ -151,6 +208,7 @@ def _get_alt_ingredients(id):
 
 
 @api.route('/ingredients/<int:ingredient_id>/alternatives/<int:alt_ingredient_id>', methods=['GET', 'DELETE'])
+@auth.login_required
 def _get_alt_ingredient(ingredient_id, alt_ingredient_id):
     if request.method == 'GET':
         try:
@@ -170,7 +228,6 @@ def _get_alt_ingredient(ingredient_id, alt_ingredient_id):
 
         # Get the parsed contents of the form data
         json = request.json
-        print(json)
         # # Render template
         # return jsonify(json)
 
@@ -189,6 +246,7 @@ def _get_alt_ingredient(ingredient_id, alt_ingredient_id):
 
 
 @api.route('/ingredients', methods=['GET', 'POST'])
+@auth.login_required
 def _get_ingredients():
     if request.method == 'GET':
         try:
@@ -224,14 +282,12 @@ def _get_ingredients():
 
         # Get the parsed contents of the form data
         json = request.json
-        print(json)
-        # # Render template
-        # return jsonify(json)
 
         return resp
 
 
 @api.route('/menus/<int:menu_id>', methods=['GET', 'PUT', 'DELETE'])
+@auth.login_required
 def _get_menu(menu_id):
     if request.method == 'GET':
         try:
@@ -257,9 +313,6 @@ def _get_menu(menu_id):
 
         # Get the parsed contents of the form data
         json = request.json
-        print(json)
-        # # Render template
-        # return jsonify(json)
 
         return resp
 
@@ -275,6 +328,7 @@ def _get_menu(menu_id):
 
 
 @api.route('/menus', methods=['GET', 'POST'])
+@auth.login_required
 def _get_menus():
     if request.method == 'GET':
         try:
@@ -307,6 +361,7 @@ def _get_menus():
 
 
 @api.route('/clients/<int:client_id>', methods=['GET', 'PUT', 'DELETE'])
+@auth.login_required
 def _get_client(client_id):
     if request.method == 'GET':
         try:
@@ -360,6 +415,7 @@ def _get_client(client_id):
 
 
 @api.route('/clients', methods=['GET', 'POST'])
+@auth.login_required
 def _create_client():
     if request.method == 'GET':
         try:
@@ -396,6 +452,7 @@ def _create_client():
 
 
 @api.route('/clients/<int:client_id>/recipes', methods=['GET', 'POST'])
+@auth.login_required
 def _client_recipes(client_id):
     if request.method == 'GET':
         try:
@@ -428,6 +485,7 @@ def _client_recipes(client_id):
 
 
 @api.route('/clients/<int:client_id>/recipes/<int:recipe_id>', methods=['GET'])
+@auth.login_required
 def _get_client_recipe(client_id, recipe_id):
     if request.method == 'GET':
         try:
@@ -455,6 +513,7 @@ def _get_client_recipe(client_id, recipe_id):
         return resp
 
 
+@auth.login_required
 @api.route('/recipes', methods=['GET', 'POST'])
 def _get_recipes():
     if request.method == 'GET':
@@ -482,6 +541,7 @@ def _get_recipes():
         return resp
 
 
+@auth.login_required
 @api.route('/recipes/<int:recipe_id>', methods=['GET', 'PUT', 'DELETE'])
 def _get_recipe(recipe_id):
     if request.method == 'GET':
@@ -532,6 +592,7 @@ def _get_recipe(recipe_id):
         return resp
 
 
+@auth.login_required
 @api.route('/recipes/<int:recipe_id>/steps', methods=['GET', 'POST'])
 def _get_step(recipe_id, step_id):
     if request.method == 'GET':
@@ -570,6 +631,7 @@ def _get_step(recipe_id, step_id):
         services.delete_recipe(recipe_id)
 
 
+@auth.login_required
 @api.route('/recipes/<int:recipe_id>/steps/<int:step_id>', methods=['GET', 'PUT', 'DELETE'])
 def recipe_step(recipe_id, step_id):
     if request.method == 'GET':
@@ -606,6 +668,7 @@ def recipe_step(recipe_id, step_id):
         return resp
 
 
+@auth.login_required
 @api.route('/menus/<int:menu_id>/recipes/<int:recipe_id>', methods=['GET'])
 def _get_menu_recipe(menu_id, recipe_id):
     try:
@@ -615,6 +678,7 @@ def _get_menu_recipe(menu_id, recipe_id):
     return jsonify({'recipe': recipe})
 
 
+@auth.login_required
 @api.route('/menus/<int:menu_id>/recipes', methods=['GET', 'POST'])
 def _get_menu_recipes(menu_id):
     if request.method == 'GET':

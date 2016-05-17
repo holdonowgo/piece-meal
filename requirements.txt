@@ -13,6 +13,7 @@ extras==0.0.3
 Flask==0.10.1
 Flask-Babel==0.9
 Flask-Bootstrap==3.3.5.7
+Flask-HTTPAuth==3.1.2
 Flask-Login==0.3.2
 Flask-Mail==0.9.1
 flask-marshmallow==0.6.2
