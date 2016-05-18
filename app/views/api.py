@@ -1,12 +1,14 @@
-from app import models, db
-from flask import request, Response, jsonify, abort, url_for, g, redirect
-from flask_swagger import swagger
-from os import abort
+import json
+
+from app import models, db, auto
 from app.api import services
+from flask import request, Response, jsonify, abort, url_for, g
+from os import abort
 from sqlalchemy.orm.exc import NoResultFound
+
 # from . import api
+from jsonpatch import JsonPatch
 from flask import Blueprint
-import app
 
 api = Blueprint(
     name='api',
@@ -37,6 +39,28 @@ def verify_password(username_or_token, password):
     g.user = user
     return True
 
+def jdefault(o):
+    if isinstance(o, set):
+        return list(o)
+    return o.__dict__
+
+
+def patch(instance, **kwargs):
+    # Create the patch object
+    patch = JsonPatch(request.get_json())
+    # Get a dictionary instance of the model instance
+    data = instance.asdict(exclude_pk=True, **kwargs)
+    print ('THIS IS THE DATA:', data)
+    # Apply the patch to the  dictionary instance of the model
+    data = patch.apply(data)
+    # Apply the patched dictionary back to the model
+    instance.fromdict(data)
+
+@api.route('/documentation')
+def documentation():
+    resultNoSets = json.dumps(auto.generate(), default=jdefault)
+    return jsonify({'api': json.loads(resultNoSets)})
+
 
 @api.route('/resource')
 @auth.login_required
@@ -51,11 +75,17 @@ def search():
 
 @api.route("/spec")
 def spec():
-    swag = swagger(api)
-    swag['info']['version'] = "1.0"
-    swag['info']['title'] = "Piece Meal API"
-    swag['info']['paths'] = ('/users', '/recipes')
-    return jsonify(swag)
+    # swag = swagger(api)
+    # swag['info']['version'] = "1.0"
+    # swag['info']['title'] = "Piece Meal API"
+    # swag['info']['paths'] = ('/users', '/recipes')
+    # return jsonify(swag)
+
+    api = {"ingredients url": url_for('api._get_ingredients'),
+           "recipes url": url_for('api._get_recipes'),
+           "clients_url": url_for('api.get_clients')}
+
+    return jsonify(api)
 
 
 @api.route('/users', methods=['GET'])
@@ -88,6 +118,7 @@ def _get_user_by_email(email):
     return jsonify({'users': users})
 
 
+@auto.doc()
 @api.route('/users/<username>', methods=['GET'])
 @auth.login_required
 def _get_user_by_username(user_name):
@@ -98,9 +129,14 @@ def _get_user_by_username(user_name):
     return jsonify({'users': users})
 
 
+@auto.doc()
 @api.route('/users', methods = ['POST'])
 @auth.login_required
 def new_user():
+    """
+
+    :return: all users
+    """
     username = request.json.get('username')
     password = request.json.get('password')
     if username is None or password is None:
@@ -124,8 +160,9 @@ def new_user():
     return resp
 
 
-@api.route('/ingredients/<int:id>', methods=['GET', 'PUT', 'DELETE'])
-@auth.login_required
+@auto.doc()
+@api.route('/ingredients/<int:id>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+# @auth.login_required
 def _get_ingredient(id):
     if request.method == 'GET':
         try:
@@ -168,6 +205,12 @@ def _get_ingredient(id):
         # return jsonify(json)
 
         return resp
+
+    elif request.method == 'PATCH':
+        ingredient = models.Ingredient.query.get_or_404(id)
+        patch(ingredient)
+        db.session.commit()
+        return jsonify(ingredient.asdict())
 
     elif request.method == 'DELETE':
         services.delete_ingredient(ingredient_id=id)

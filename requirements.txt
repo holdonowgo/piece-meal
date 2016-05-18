@@ -7,10 +7,12 @@ behave==1.2.5
 blinker==1.4
 coverage==4.0.1
 decorator==4.0.4
+dictalchemy==0.1.2.7
 dominate==2.1.16
 enum34==1.1.2
 extras==0.0.3
 Flask==0.10.1
+Flask-Autodoc==0.1.2
 Flask-Babel==0.9
 Flask-Bootstrap==3.3.5.7
 Flask-HTTPAuth==3.1.2
@@ -37,6 +39,8 @@ ipython==4.0.0
 ipython-genutils==0.1.0
 itsdangerous==0.24
 Jinja2==2.8
+jsonpatch==1.13
+jsonpointer==1.10
 lettuce==0.2.21
 linecache2==1.0.0
 logilab-common==1.1.0
