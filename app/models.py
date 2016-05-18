@@ -102,7 +102,7 @@ class UserSchema(ma.ModelSchema):
     class Meta:
         model = User
         # fields = ("id", "email", "username", '_links')
-        exclude = ("password",)
+        exclude = ("password", "password_hash",)
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
