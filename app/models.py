@@ -740,7 +740,8 @@ class IngredientSchema(ma.ModelSchema):
     # Smart hyperlinking
     _links = ma.Hyperlinks({
         'self': ma.URLFor('api._get_ingredient', id='<id>'),
-        'collection': ma.URLFor('api._get_ingredients')
+        'collection': ma.URLFor('api._get_ingredients'),
+        'alt ingredients:': ma.URLFor('api._get_alt_ingredients', id='<id>')
     })
 
     uri = ma.URLFor('api._get_ingredient', id='<id>')

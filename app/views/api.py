@@ -73,6 +73,7 @@ def search():
     pass
 
 
+@api.route("/api")
 @api.route("/spec")
 def spec():
     # swag = swagger(api)
@@ -83,7 +84,8 @@ def spec():
 
     api = {"ingredients url": url_for('api._get_ingredients'),
            "recipes url": url_for('api._get_recipes'),
-           "clients_url": url_for('api.get_clients')}
+           "clients_url": url_for('api._create_client'),
+           "menus_url": url_for('api._create_client')}
 
     return jsonify(api)
 
@@ -131,7 +133,7 @@ def _get_user_by_username(user_name):
 
 @auto.doc()
 @api.route('/users', methods = ['POST'])
-@auth.login_required
+# @auth.login_required
 def new_user():
     """
 
