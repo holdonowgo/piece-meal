@@ -472,6 +472,8 @@ def _create_client():
         resp.headers['Location'] = 'localhost:5000/clients'
         resp.status_code = 200
 
+        return resp
+
     elif request.method == 'POST':
         client = models.Client()
         name = request.form['name']
@@ -642,10 +644,10 @@ def _get_recipe(recipe_id):
 def _get_step(recipe_id, step_id):
     if request.method == 'GET':
         try:
-            step = services.get_step(recipe_id=recipe_id, step_id=step_id)
+            steps = services.get_steps(recipe_id=recipe_id)
         except NoResultFound:
             abort(404)
-        return jsonify({'step': step})
+        return jsonify({'steps': steps})
 
     elif request.method == 'PUT':
         name = request.form['name']
@@ -681,10 +683,10 @@ def _get_step(recipe_id, step_id):
 def recipe_step(recipe_id, step_id):
     if request.method == 'GET':
         try:
-            steps = services.get_steps(recipe_id=recipe_id)
+            step = services.get_step(recipe_id=recipe_id, step_id=step_id)
         except NoResultFound:
             abort(404)
-        return jsonify({'steps': steps})
+        return jsonify({'steps': step})
 
     elif request.method == 'PUT':
         recipe_id = request.form['recipe_id']

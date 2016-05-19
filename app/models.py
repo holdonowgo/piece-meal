@@ -785,7 +785,7 @@ class StepSchema(ma.ModelSchema):
     # Smart hyperlinking
     _links = ma.Hyperlinks({
         'self': ma.URLFor('api.recipe_step', recipe_id='<recipe_id>', step_id='<id>'),
-        'collection': ma.URLFor('api.recipe_step', recipe_id='<recipe_id>')
+        'collection': ma.URLFor('api._get_step', recipe_id='<recipe_id>')
     })
 
 
@@ -848,8 +848,8 @@ class ClientSchema(ma.ModelSchema):
 
     # Smart hyperlinking
     _links = ma.Hyperlinks({
-        'self': ma.URLFor('api._get_client', client_id='<id>'),
-        'collection': ma.URLFor('api._get_clients')
+        'self': ma.URLFor('api._create_client', client_id='<id>'),
+        'collection': ma.URLFor('api._create_client')
     })
 
     @post_load

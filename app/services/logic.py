@@ -92,6 +92,7 @@ def get_client(client_id):
 def get_clients():
     client_schema = models.ClientSchema(many=True)
     clients = models.Client.query.all()
+    print(clients)
     return client_schema.dump(clients).data
 
 
