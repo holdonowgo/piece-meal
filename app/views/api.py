@@ -641,7 +641,7 @@ def _get_recipe(recipe_id):
 
 @auth.login_required
 @api.route('/recipes/<int:recipe_id>/steps', methods=['GET', 'POST'])
-def _get_step(recipe_id, step_id):
+def _get_step(recipe_id):
     if request.method == 'GET':
         try:
             steps = services.get_steps(recipe_id=recipe_id)
