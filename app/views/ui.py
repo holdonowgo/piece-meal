@@ -18,3 +18,8 @@ ui = Blueprint(
 @ui.route('/main')
 def main():
     return render_template('main.html')
+
+
+@ui.route('/test')
+def testing():
+    return render_template("test_token.html")

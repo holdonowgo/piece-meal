@@ -10,6 +10,12 @@
 
     {% block styles -%}
         {{super()}}
+        <link href="{{ url_for('static', filename='css/jquery-ui.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/jquery-ui.structure.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/jquery-ui.theme.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">
     {% endblock %}
 {%- endblock %}
 
@@ -42,5 +48,13 @@
 
     {% block scripts %}
 	    {{ super() }}
+
+        <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+{#        <script src="{{ url_for('static', filename='js/ingredient.js') }}"></script>#}
+        <script src="{{ url_for('static', filename='js/typeahead.bundle.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/test_token.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/jquery-ui.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/bootstrap-tokenfield.min.js') }}"></script>
     {% endblock %}
 {% endblock %}

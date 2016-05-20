@@ -72,7 +72,6 @@ def get_resource():
 def search():
     pass
 
-
 @api.route("/api")
 @api.route("/spec")
 def spec():
@@ -291,7 +290,7 @@ def _get_alt_ingredient(ingredient_id, alt_ingredient_id):
 
 
 @api.route('/ingredients', methods=['GET', 'POST'])
-@auth.login_required
+# @auth.login_required
 def _get_ingredients():
     if request.method == 'GET':
         try:
